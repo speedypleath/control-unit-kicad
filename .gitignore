@@ -17,3 +17,12 @@ fp-info-cache
 
 # KiCad 6+ rolling backups directory
 *-backups/
+
+# KiCad lock files
+*.lck
+
+# KiCad local file history (its own embedded git repo)
+.history/
+
+# macOS
+.DS_Store
