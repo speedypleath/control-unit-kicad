@@ -499,7 +499,7 @@
       "no_connect_dangling": "warning",
       "pin_not_connected": "error",
       "pin_not_driven": "error",
-      "pin_to_pin": "warning",
+      "pin_to_pin": "error",
       "power_pin_not_driven": "error",
       "same_local_global_label": "warning",
       "similar_label_and_power": "warning",
@@ -691,7 +691,7 @@
       {
         "filename": "haptic-console-control-unit.kicad_sch",
         "name": "haptic-console-control-unit",
-        "uuid": "00000000-0000-0000-0000-000000000000"
+        "uuid": "710cdb74-1f9a-40db-8211-bf156eca497d"
       }
     ],
     "used_designators": "",
@@ -699,8 +699,8 @@
   },
   "sheets": [
     [
-      "ee47921a-0cf4-4cdf-b7bb-91710875ca85",
-      "Root"
+      "710cdb74-1f9a-40db-8211-bf156eca497d",
+      "haptic-console-control-unit"
     ]
   ],
   "text_variables": {},
