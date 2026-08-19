@@ -4,7 +4,7 @@
   (lib (name "Device")(type "KiCad")(uri "${KICAD_SYMBOL_DIR}/Device.kicad_sym")(options "")(descr "Device symbols"))
   (lib (name "Connector_Generic")(type "KiCad")(uri "${KICAD_SYMBOL_DIR}/Connector_Generic.kicad_sym")(options "")(descr "Generic connectors"))
   (lib (name "Connector_JST")(type "KiCad")(uri "${KICAD_SYMBOL_DIR}/Connector_JST.kicad_sym")(options "")(descr "JST connectors"))
-  (lib (name "teensy")(type "KiCad")(uri "${KICAD_SYMBOL_DIR}/teensy.kicad_sym")(options "")(descr "Teensy MCU library (XenGi)"))
+  (lib (name "teensy")(type "KiCad")(uri "${KIPRJMOD}/../libraries/teensy.kicad_sym")(options "")(descr "Teensy MCU library (XenGi)"))
   (lib (name "Resistor_THT")(type "KiCad")(uri "${KICAD_SYMBOL_DIR}/Resistor_THT.kicad_sym")(options "")(descr "THT resistors"))
   (lib (name "Pin_Headers")(type "KiCad")(uri "${KICAD_SYMBOL_DIR}/Pin_Headers.kicad_sym")(options "")(descr "Pin headers"))
   (lib (name "SparkFun-Sensor")(type "KiCad")(uri "${KICAD_USER_DIR}/SparkFun-KiCad-Libraries/symbols/SparkFun-Sensor.kicad_sym")(options "")(descr "SparkFun sensor symbols"))
