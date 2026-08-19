@@ -1,0 +1,19 @@
+# KiCad backup files
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.kicad_pro-bak
+*.000
+*.001
+*.002
+
+# KiCad autosave
+_autosave-*
+
+# KiCad local project settings (personal preferences)
+*.kicad_prl
+
+# KiCad footprint cache
+fp-info-cache
+
+# KiCad 6+ rolling backups directory
+*-backups/
