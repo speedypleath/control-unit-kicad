@@ -108,15 +108,19 @@
     <strong>Connector standard note:</strong> S1&ndash;S6 now follow the XH2.54 6-pin Haptic Console Connector Standard v1.1 pinout &mdash; pin 1 GND, pin 2 3.3V, pin 3 5V, pin 4 SDA, pin 5 SCL, pin 6 IRQ &mdash; matching cables crimped to that spec. The physical hole grid below is unchanged from the previous revision; only which signal sits on which pin (and therefore which row carries which bus) was corrected.
   </div>
 
+  <div class="callout">
+    <strong>Board re-layout note (2026-08-20, later revision):</strong> the Teensy header sockets moved 1 column left / 2 rows up (row 25&rarr;23, row 31&rarr;29) and R12/R13 shifted 2 columns since the previous revision of this guide. All header/pull-up/LED-resistor grid refs below were re-derived directly from the current <code>haptic-console-control-unit-perfboard.kicad_pcb</code> placement to match. S1&ndash;S6, B1&ndash;B8, J1/J2, and CB1&ndash;CB5 did not move and are unaffected.
+  </div>
+
   <section>
     <h2>Teensy header pinout</h2>
-    <p class="section-intro">Two 24-pin female sockets, row A on hole-row <span class="grid-ref">25</span>, row B on hole-row <span class="grid-ref">31</span> &mdash; unchanged by this revision. Every cell shows the real board hole under that header pin.</p>
+    <p class="section-intro">Two 24-pin female sockets, row A on hole-row <span class="grid-ref">23</span>, row B on hole-row <span class="grid-ref">29</span>. Every cell shows the real board hole under that header pin.</p>
     <div class="header-strip">
-      <div class="header-strip-title"><h3>Header A &mdash; row 25</h3><span class="note">Teensy pins 25&ndash;48</span></div>
+      <div class="header-strip-title"><h3>Header A &mdash; row 23</h3><span class="note">Teensy pins 25&ndash;48</span></div>
       <div class="pin-row" id="header-a"></div>
     </div>
     <div class="header-strip">
-      <div class="header-strip-title"><h3>Header B &mdash; row 31</h3><span class="note">Teensy pins 1&ndash;24</span></div>
+      <div class="header-strip-title"><h3>Header B &mdash; row 29</h3><span class="note">Teensy pins 1&ndash;24</span></div>
       <div class="pin-row" id="header-b"></div>
     </div>
   </section>
@@ -165,7 +169,7 @@
 
   <section class="zone">
     <h2>NP1 &mdash; numpad</h2>
-    <p class="section-intro">Unchanged by this revision &mdash; pushed to the board's right edge (col B) to dodge the Teensy header row it shares rows with.</p>
+    <p class="section-intro">Unchanged by this revision &mdash; pushed to the board's right edge (col B) to dodge the Teensy header row it shares rows with. <strong>Note:</strong> since the header re-layout above, NP1 pin 8 (<span class="grid-ref">B23</span>, right edge) and Header A pin 1 (<span class="grid-ref">B23</span>, left edge) now compute to the same letter+row &mdash; the board's 32-column letter sequence reuses "B" at both ends, so these are two different physical holes despite the identical label. Use the left/right position, not the label alone, to tell them apart.</p>
     <div class="conn-grid" id="zone-np"></div>
   </section>
 
@@ -176,23 +180,23 @@
 
 <script>
   const A = [
-    ["A25","+5V","VIN","power"],["Z25","GND","","gnd"],["Y25","+3V3","(out)","power"],
-    ["X25","D23","B4.2","signal"],["W25","D22","B3.2","signal"],["V25","D21","B2.2","signal"],["U25","D20","B1.2","signal"],
-    ["T25","SCL","bus","i2c"],["S25","SDA","bus","i2c"],
-    ["R25","IRQ3","S3.1","i2c"],["Q25","IRQ2","S2.1","i2c"],["P25","IRQ1","S1.1","i2c"],
-    ["O25","D14","CB5.1","signal"],["N25","D13","CB4.1","signal"],["M25","GND","","gnd"],
-    ["L25","IRQ6","S6.1","i2c"],["K25","IRQ5","S5.1","i2c"],["J25","IRQ4","S4.1","i2c"],
-    ["I25","D38","R5.2","signal"],["H25","D37","R4.2","signal"],["G25","D36","R3.2","signal"],
-    ["F25","D35","NP1.8","signal"],["E25","D34","NP1.7","signal"],["D25","D33","NP1.6","signal"],
+    ["B23","+5V","VIN","power"],["A23","GND","","gnd"],["Z23","+3V3","(out)","power"],
+    ["Y23","D23","B4.2","signal"],["X23","D22","B3.2","signal"],["W23","D21","B2.2","signal"],["V23","D20","B1.2","signal"],
+    ["U23","SCL","bus","i2c"],["T23","SDA","bus","i2c"],
+    ["S23","IRQ3","S3.1","i2c"],["R23","IRQ2","S2.1","i2c"],["Q23","IRQ1","S1.1","i2c"],
+    ["P23","D14","CB5.1","signal"],["O23","D13","CB4.1","signal"],["N23","GND","","gnd"],
+    ["M23","IRQ6","S6.1","i2c"],["L23","IRQ5","S5.1","i2c"],["K23","IRQ4","S4.1","i2c"],
+    ["J23","D38","R5.2","signal"],["I23","D37","R4.2","signal"],["H23","D36","R3.2","signal"],
+    ["G23","D35","NP1.8","signal"],["F23","D34","NP1.7","signal"],["E23","D33","NP1.6","signal"],
   ];
   const B = [
-    ["A31","GND","","gnd"],["Z31","D0","J1.1","signal"],["Y31","D1","J1.2","signal"],["X31","D2","J1.3","signal"],["W31","D3","J1.4","signal"],
-    ["V31","D4","J2.1","signal"],["U31","D5","J2.2","signal"],["T31","D6","J2.3","signal"],["S31","D7","J2.4","signal"],
-    ["R31","D8","R1.2","signal"],["Q31","D9","R2.2","signal"],
-    ["P31","D10","CB1.1","signal"],["O31","D11","CB2.1","signal"],["N31","D12","CB3.1","signal"],
-    ["M31","+3V3","","power"],
-    ["L31","D24","B5.2","signal"],["K31","D25","B6.2","signal"],["J31","D26","B7.2","signal"],["I31","D27","B8.2","signal"],
-    ["H31","D28","NP1.1","signal"],["G31","D29","NP1.2","signal"],["F31","D30","NP1.3","signal"],["E31","D31","NP1.4","signal"],["D31","D32","NP1.5","signal"],
+    ["B29","GND","","gnd"],["A29","D0","J1.1","signal"],["Z29","D1","J1.2","signal"],["Y29","D2","J1.3","signal"],["X29","D3","J1.4","signal"],
+    ["W29","D4","J2.1","signal"],["V29","D5","J2.2","signal"],["U29","D6","J2.3","signal"],["T29","D7","J2.4","signal"],
+    ["S29","D8","R1.2","signal"],["R29","D9","R2.2","signal"],
+    ["Q29","D10","CB1.1","signal"],["P29","D11","CB2.1","signal"],["O29","D12","CB3.1","signal"],
+    ["N29","+3V3","","power"],
+    ["M29","D24","B5.2","signal"],["L29","D25","B6.2","signal"],["K29","D26","B7.2","signal"],["J29","D27","B8.2","signal"],
+    ["I29","D28","NP1.1","signal"],["H29","D29","NP1.2","signal"],["G29","D30","NP1.3","signal"],["F29","D31","NP1.4","signal"],["E29","D32","NP1.5","signal"],
   ];
   function renderRow(id, pins) {
     document.getElementById(id).innerHTML = pins.map(p => `
@@ -206,14 +210,14 @@
   renderRow("header-b", B);
 
   const rails = [
-    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 11: C11 X11 S11 N11 I11 D11 (S1&ndash;S6 pin 1) &middot; feeds Header A Z25/M25" },
-    { name: "GND · B-zone", color: "var(--gnd)", taps: "Row 16: D16 Z16 V16 R16 C16 G16 K16 O16 (all of B1&ndash;B8 pin 1) &middot; feeds Header B A31" },
+    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 11: C11 X11 S11 N11 I11 D11 (S1&ndash;S6 pin 1) &middot; feeds Header A A23/N23" },
+    { name: "GND · B-zone", color: "var(--gnd)", taps: "Row 16: D16 Z16 V16 R16 C16 G16 K16 O16 (all of B1&ndash;B8 pin 1) &middot; feeds Header B B29" },
     { name: "GND · J-zone", color: "var(--gnd)", taps: "Row 35: X35 I35 (J1/J2 pin 5)" },
     { name: "GND · CB-zone", color: "var(--gnd)", taps: "Row 46: Z46 U46 P46 K46 F46 &middot; Row 44: Z44 U44 P44 K44 F44 (both GND pins of CB1&ndash;CB5)" },
-    { name: "+3V3", color: "var(--power)", taps: "Header A: Y25 &middot; Header B: M31 &middot; feeds S1&ndash;S6 pin 2 (row 10), R12.2 (O13), R13.2 (J13)" },
-    { name: "+5V", color: "var(--power)", taps: "Header A: A25 (VIN) &middot; feeds S1&ndash;S6 pin 3 (row 09)" },
-    { name: "SCL", color: "var(--i2c)", taps: "Header A: T25 &middot; S-zone row 07: C07 X07 S07 N07 I07 D07 &middot; R13.1 (N13)" },
-    { name: "SDA", color: "var(--i2c)", taps: "Header A: S25 &middot; S-zone row 08: C08 X08 S08 N08 I08 D08 &middot; R12.1 (S13)" },
+    { name: "+3V3", color: "var(--power)", taps: "Header A: Z23 &middot; Header B: N29 &middot; feeds S1&ndash;S6 pin 2 (row 10), R12.2 (M13), R13.2 (H13)" },
+    { name: "+5V", color: "var(--power)", taps: "Header A: B23 (VIN) &middot; feeds S1&ndash;S6 pin 3 (row 09)" },
+    { name: "SCL", color: "var(--i2c)", taps: "Header A: U23 &middot; S-zone row 07: C07 X07 S07 N07 I07 D07 &middot; R13.1 (L13)" },
+    { name: "SDA", color: "var(--i2c)", taps: "Header A: T23 &middot; S-zone row 08: C08 X08 S08 N08 I08 D08 &middot; R12.1 (Q13)" },
   ];
   document.getElementById("rail-grid").innerHTML = rails.map(r => `
     <div class="rail-card" style="--rail-color:${r.color}">
@@ -223,49 +227,49 @@
 
   const connectors = {
     "zone-s": [
-      { ref: "S1", type: "JST-XH-6 · col C", pins: [["1","C11","GND → Z25/M25 (rail)","gnd"],["2","C10","+3V3 → Y25 (rail)","power"],["3","C09","+5V → A25 (rail)","power"],["4","C08","SDA → S25 (rail)","i2c"],["5","C07","SCL → T25 (rail)","i2c"],["6","C06","IRQ1 → P25","i2c"]] },
-      { ref: "S2", type: "JST-XH-6 · col X", pins: [["1","X11","GND → Z25/M25 (rail)","gnd"],["2","X10","+3V3 → Y25 (rail)","power"],["3","X09","+5V → A25 (rail)","power"],["4","X08","SDA → S25 (rail)","i2c"],["5","X07","SCL → T25 (rail)","i2c"],["6","X06","IRQ2 → Q25","i2c"]] },
-      { ref: "S3", type: "JST-XH-6 · col S", pins: [["1","S11","GND → Z25/M25 (rail)","gnd"],["2","S10","+3V3 → Y25 (rail)","power"],["3","S09","+5V → A25 (rail)","power"],["4","S08","SDA → S25 (rail)","i2c"],["5","S07","SCL → T25 (rail)","i2c"],["6","S06","IRQ3 → R25","i2c"]] },
-      { ref: "S4", type: "JST-XH-6 · col N", pins: [["1","N11","GND → Z25/M25 (rail)","gnd"],["2","N10","+3V3 → Y25 (rail)","power"],["3","N09","+5V → A25 (rail)","power"],["4","N08","SDA → S25 (rail)","i2c"],["5","N07","SCL → T25 (rail)","i2c"],["6","N06","IRQ4 → J25","i2c"]] },
-      { ref: "S5", type: "JST-XH-6 · col I", pins: [["1","I11","GND → Z25/M25 (rail)","gnd"],["2","I10","+3V3 → Y25 (rail)","power"],["3","I09","+5V → A25 (rail)","power"],["4","I08","SDA → S25 (rail)","i2c"],["5","I07","SCL → T25 (rail)","i2c"],["6","I06","IRQ5 → K25","i2c"]] },
-      { ref: "S6", type: "JST-XH-6 · col D", pins: [["1","D11","GND → Z25/M25 (rail)","gnd"],["2","D10","+3V3 → Y25 (rail)","power"],["3","D09","+5V → A25 (rail)","power"],["4","D08","SDA → S25 (rail)","i2c"],["5","D07","SCL → T25 (rail)","i2c"],["6","D06","IRQ6 → L25","i2c"]] },
+      { ref: "S1", type: "JST-XH-6 · col C", pins: [["1","C11","GND → A23/N23 (rail)","gnd"],["2","C10","+3V3 → Z23 (rail)","power"],["3","C09","+5V → B23 (rail)","power"],["4","C08","SDA → T23 (rail)","i2c"],["5","C07","SCL → U23 (rail)","i2c"],["6","C06","IRQ1 → Q23","i2c"]] },
+      { ref: "S2", type: "JST-XH-6 · col X", pins: [["1","X11","GND → A23/N23 (rail)","gnd"],["2","X10","+3V3 → Z23 (rail)","power"],["3","X09","+5V → B23 (rail)","power"],["4","X08","SDA → T23 (rail)","i2c"],["5","X07","SCL → U23 (rail)","i2c"],["6","X06","IRQ2 → R23","i2c"]] },
+      { ref: "S3", type: "JST-XH-6 · col S", pins: [["1","S11","GND → A23/N23 (rail)","gnd"],["2","S10","+3V3 → Z23 (rail)","power"],["3","S09","+5V → B23 (rail)","power"],["4","S08","SDA → T23 (rail)","i2c"],["5","S07","SCL → U23 (rail)","i2c"],["6","S06","IRQ3 → S23","i2c"]] },
+      { ref: "S4", type: "JST-XH-6 · col N", pins: [["1","N11","GND → A23/N23 (rail)","gnd"],["2","N10","+3V3 → Z23 (rail)","power"],["3","N09","+5V → B23 (rail)","power"],["4","N08","SDA → T23 (rail)","i2c"],["5","N07","SCL → U23 (rail)","i2c"],["6","N06","IRQ4 → K23","i2c"]] },
+      { ref: "S5", type: "JST-XH-6 · col I", pins: [["1","I11","GND → A23/N23 (rail)","gnd"],["2","I10","+3V3 → Z23 (rail)","power"],["3","I09","+5V → B23 (rail)","power"],["4","I08","SDA → T23 (rail)","i2c"],["5","I07","SCL → U23 (rail)","i2c"],["6","I06","IRQ5 → L23","i2c"]] },
+      { ref: "S6", type: "JST-XH-6 · col D", pins: [["1","D11","GND → A23/N23 (rail)","gnd"],["2","D10","+3V3 → Z23 (rail)","power"],["3","D09","+5V → B23 (rail)","power"],["4","D08","SDA → T23 (rail)","i2c"],["5","D07","SCL → U23 (rail)","i2c"],["6","D06","IRQ6 → M23","i2c"]] },
     ],
     "zone-pullup": [
-      { ref: "R12", type: "4.7kΩ · SDA pull-up", pins: [["1","S13","SDA (rail)","i2c"],["2","O13","+3V3 (rail)","power"]] },
-      { ref: "R13", type: "4.7kΩ · SCL pull-up", pins: [["1","N13","SCL (rail)","i2c"],["2","J13","+3V3 (rail)","power"]] },
+      { ref: "R12", type: "4.7kΩ · SDA pull-up", pins: [["1","Q13","SDA (rail)","i2c"],["2","M13","+3V3 (rail)","power"]] },
+      { ref: "R13", type: "4.7kΩ · SCL pull-up", pins: [["1","L13","SCL (rail)","i2c"],["2","H13","+3V3 (rail)","power"]] },
     ],
     "zone-b": [
-      { ref: "B1", type: "JST-XH-2 · col D", pins: [["1","D16","GND (rail)","gnd"],["2","D15","D20 → U25","signal"]] },
-      { ref: "B2", type: "JST-XH-2 · col Z", pins: [["1","Z16","GND (rail)","gnd"],["2","Z15","D21 → V25","signal"]] },
-      { ref: "B3", type: "JST-XH-2 · col V", pins: [["1","V16","GND (rail)","gnd"],["2","V15","D22 → W25","signal"]] },
-      { ref: "B4", type: "JST-XH-2 · col R", pins: [["1","R16","GND (rail)","gnd"],["2","R15","D23 → X25","signal"]] },
-      { ref: "B8", type: "JST-XH-2 · col O", pins: [["1","O16","GND (rail)","gnd"],["2","O15","D27 → I31","signal"]] },
-      { ref: "B7", type: "JST-XH-2 · col K", pins: [["1","K16","GND (rail)","gnd"],["2","K15","D26 → J31","signal"]] },
-      { ref: "B6", type: "JST-XH-2 · col G", pins: [["1","G16","GND (rail)","gnd"],["2","G15","D25 → K31","signal"]] },
-      { ref: "B5", type: "JST-XH-2 · col C", pins: [["1","C16","GND (rail)","gnd"],["2","C15","D24 → L31","signal"]] },
+      { ref: "B1", type: "JST-XH-2 · col D", pins: [["1","D16","GND (rail)","gnd"],["2","D15","D20 → V23","signal"]] },
+      { ref: "B2", type: "JST-XH-2 · col Z", pins: [["1","Z16","GND (rail)","gnd"],["2","Z15","D21 → W23","signal"]] },
+      { ref: "B3", type: "JST-XH-2 · col V", pins: [["1","V16","GND (rail)","gnd"],["2","V15","D22 → X23","signal"]] },
+      { ref: "B4", type: "JST-XH-2 · col R", pins: [["1","R16","GND (rail)","gnd"],["2","R15","D23 → Y23","signal"]] },
+      { ref: "B8", type: "JST-XH-2 · col O", pins: [["1","O16","GND (rail)","gnd"],["2","O15","D27 → J29","signal"]] },
+      { ref: "B7", type: "JST-XH-2 · col K", pins: [["1","K16","GND (rail)","gnd"],["2","K15","D26 → K29","signal"]] },
+      { ref: "B6", type: "JST-XH-2 · col G", pins: [["1","G16","GND (rail)","gnd"],["2","G15","D25 → L29","signal"]] },
+      { ref: "B5", type: "JST-XH-2 · col C", pins: [["1","C16","GND (rail)","gnd"],["2","C15","D24 → M29","signal"]] },
     ],
     "zone-j": [
-      { ref: "J1", type: "JST-XH-5 · left stick · col X", pins: [["1","X39","D0 → Z31","signal"],["2","X38","D1 → Y31","signal"],["3","X37","D2 → X31","signal"],["4","X36","D3 → W31","signal"],["5","X35","GND (rail)","gnd"]] },
-      { ref: "J2", type: "JST-XH-5 · right stick · col I", pins: [["1","I39","D4 → V31","signal"],["2","I38","D5 → U31","signal"],["3","I37","D6 → T31","signal"],["4","I36","D7 → S31","signal"],["5","I35","GND (rail)","gnd"]] },
+      { ref: "J1", type: "JST-XH-5 · left stick · col X", pins: [["1","X39","D0 → A29","signal"],["2","X38","D1 → Z29","signal"],["3","X37","D2 → Y29","signal"],["4","X36","D3 → X29","signal"],["5","X35","GND (rail)","gnd"]] },
+      { ref: "J2", type: "JST-XH-5 · right stick · col I", pins: [["1","I39","D4 → W29","signal"],["2","I38","D5 → V29","signal"],["3","I37","D6 → U29","signal"],["4","I36","D7 → T29","signal"],["5","I35","GND (rail)","gnd"]] },
     ],
     "zone-cb": [
-      { ref: "CB1", type: "JST-XH-4 · ARM · col Z", pins: [["1","Z47","D10 → P31","signal"],["2","Z46","GND (rail)","gnd"],["3","Z45","LED_ARM → R1.1","signal"],["4","Z44","GND (rail)","gnd"]] },
-      { ref: "CB2", type: "JST-XH-4 · EN · col U", pins: [["1","U47","D11 → O31","signal"],["2","U46","GND (rail)","gnd"],["3","U45","LED_EN → R2.1","signal"],["4","U44","GND (rail)","gnd"]] },
-      { ref: "CB3", type: "JST-XH-4 · SFT · col P (center)", pins: [["1","P47","D12 → N31","signal"],["2","P46","GND (rail)","gnd"],["3","P45","LED_SFT → R3.1","signal"],["4","P44","GND (rail)","gnd"]] },
-      { ref: "CB4", type: "JST-XH-4 · CONF · col K", pins: [["1","K47","D13 → N25","signal"],["2","K46","GND (rail)","gnd"],["3","K45","LED_CONF → R4.1","signal"],["4","K44","GND (rail)","gnd"]] },
-      { ref: "CB5", type: "JST-XH-4 · ALT · col F", pins: [["1","F47","D14 → O25","signal"],["2","F46","GND (rail)","gnd"],["3","F45","LED_ALT → R5.1","signal"],["4","F44","GND (rail)","gnd"]] },
+      { ref: "CB1", type: "JST-XH-4 · ARM · col Z", pins: [["1","Z47","D10 → Q29","signal"],["2","Z46","GND (rail)","gnd"],["3","Z45","LED_ARM → R1.1","signal"],["4","Z44","GND (rail)","gnd"]] },
+      { ref: "CB2", type: "JST-XH-4 · EN · col U", pins: [["1","U47","D11 → P29","signal"],["2","U46","GND (rail)","gnd"],["3","U45","LED_EN → R2.1","signal"],["4","U44","GND (rail)","gnd"]] },
+      { ref: "CB3", type: "JST-XH-4 · SFT · col P (center)", pins: [["1","P47","D12 → O29","signal"],["2","P46","GND (rail)","gnd"],["3","P45","LED_SFT → R3.1","signal"],["4","P44","GND (rail)","gnd"]] },
+      { ref: "CB4", type: "JST-XH-4 · CONF · col K", pins: [["1","K47","D13 → O23","signal"],["2","K46","GND (rail)","gnd"],["3","K45","LED_CONF → R4.1","signal"],["4","K44","GND (rail)","gnd"]] },
+      { ref: "CB5", type: "JST-XH-4 · ALT · col F", pins: [["1","F47","D14 → P23","signal"],["2","F46","GND (rail)","gnd"],["3","F45","LED_ALT → R5.1","signal"],["4","F44","GND (rail)","gnd"]] },
     ],
     "zone-r": [
-      { ref: "R1", type: "220Ω · LED_ARM (under CB1)", pins: [["1","B49","← CB1.3","signal"],["2","X49","D8 → R31","signal"]] },
-      { ref: "R2", type: "220Ω · LED_EN (under CB2)", pins: [["1","W49","← CB2.3","signal"],["2","S49","D9 → Q31","signal"]] },
-      { ref: "R3", type: "220Ω · LED_SFT (under CB3)", pins: [["1","R49","← CB3.3","signal"],["2","N49","D36 → G25","signal"]] },
-      { ref: "R4", type: "220Ω · LED_CONF (under CB4)", pins: [["1","M49","← CB4.3","signal"],["2","I49","D37 → H25","signal"]] },
-      { ref: "R5", type: "220Ω · LED_ALT (under CB5)", pins: [["1","H49","← CB5.3","signal"],["2","D49","D38 → I25","signal"]] },
+      { ref: "R1", type: "220Ω · LED_ARM (under CB1)", pins: [["1","Z49","← CB1.3","signal"],["2","V49","D8 → S29","signal"]] },
+      { ref: "R2", type: "220Ω · LED_EN (under CB2)", pins: [["1","U49","← CB2.3","signal"],["2","Q49","D9 → R29","signal"]] },
+      { ref: "R3", type: "220Ω · LED_SFT (under CB3)", pins: [["1","P49","← CB3.3","signal"],["2","L49","D36 → H23","signal"]] },
+      { ref: "R4", type: "220Ω · LED_CONF (under CB4)", pins: [["1","K49","← CB4.3","signal"],["2","G49","D37 → I23","signal"]] },
+      { ref: "R5", type: "220Ω · LED_ALT (under CB5)", pins: [["1","F49","← CB5.3","signal"],["2","B49","D38 → J23","signal"]] },
     ],
     "zone-np": [
       { ref: "NP1", type: "JST-XH-8 · numpad · col B", pins: [
-        ["1","B30","D28 → H31","signal"],["2","B29","D29 → G31","signal"],["3","B28","D30 → F31","signal"],["4","B27","D31 → E31","signal"],
-        ["5","B26","D32 → D31","signal"],["6","B25","D33 → D25","signal"],["7","B24","D34 → E25","signal"],["8","B23","D35 → F25","signal"]] },
+        ["1","B30","D28 → I29","signal"],["2","B29","D29 → H29","signal"],["3","B28","D30 → G29","signal"],["4","B27","D31 → F29","signal"],
+        ["5","B26","D32 → E29","signal"],["6","B25","D33 → E23","signal"],["7","B24","D34 → F23","signal"],["8","B23","D35 → G23","signal"]] },
     ],
   };
 
