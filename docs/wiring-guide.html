@@ -104,6 +104,10 @@
     <strong>Layout note (2026-08-20 revision):</strong> every JST header group now shares one anchor row per group, mirrored left/right to match the physical panel (S1&ndash;S6 haptic drivers centered; B1&ndash;B4 mirrors B5&ndash;B8; J1 mirrors J2; CB1&ndash;CB5 near-symmetric about the center column). Because each group shares an anchor row, the same pin number lands on the same row across every connector in the group &mdash; so GND (and +3V3/+5V/SCL/SDA for S1&ndash;S6) can be bussed with one straight wire along that row instead of home-running each connector separately. All content fits within the physical board's 32&times;50 hole grid (columns A&ndash;Z/A&ndash;F, rows 01&ndash;50); nothing has been placed past row 50.
   </div>
 
+  <div class="callout">
+    <strong>Connector standard note:</strong> S1&ndash;S6 now follow the XH2.54 6-pin Haptic Console Connector Standard v1.1 pinout &mdash; pin 1 GND, pin 2 3.3V, pin 3 5V, pin 4 SDA, pin 5 SCL, pin 6 IRQ &mdash; matching cables crimped to that spec. The physical hole grid below is unchanged from the previous revision; only which signal sits on which pin (and therefore which row carries which bus) was corrected.
+  </div>
+
   <section>
     <h2>Teensy header pinout</h2>
     <p class="section-intro">Two 24-pin female sockets, row A on hole-row <span class="grid-ref">25</span>, row B on hole-row <span class="grid-ref">31</span> &mdash; unchanged by this revision. Every cell shows the real board hole under that header pin.</p>
@@ -202,14 +206,14 @@
   renderRow("header-b", B);
 
   const rails = [
-    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 06: C06 X06 S06 N06 I06 D06 (S1&ndash;S6 pin 6) &middot; feeds Header A Z25/M25" },
+    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 11: C11 X11 S11 N11 I11 D11 (S1&ndash;S6 pin 1) &middot; feeds Header A Z25/M25" },
     { name: "GND · B-zone", color: "var(--gnd)", taps: "Row 16: D16 Z16 V16 R16 C16 G16 K16 O16 (all of B1&ndash;B8 pin 1) &middot; feeds Header B A31" },
     { name: "GND · J-zone", color: "var(--gnd)", taps: "Row 35: X35 I35 (J1/J2 pin 5)" },
     { name: "GND · CB-zone", color: "var(--gnd)", taps: "Row 46: Z46 U46 P46 K46 F46 &middot; Row 44: Z44 U44 P44 K44 F44 (both GND pins of CB1&ndash;CB5)" },
-    { name: "+3V3", color: "var(--power)", taps: "Header A: Y25 &middot; Header B: M31 &middot; feeds S1&ndash;S6 pin 5 (row 07), R12.2 (O13), R13.2 (J13)" },
-    { name: "+5V", color: "var(--power)", taps: "Header A: A25 (VIN) &middot; feeds S1&ndash;S6 pin 4 (row 08)" },
-    { name: "SCL", color: "var(--i2c)", taps: "Header A: T25 &middot; S-zone row 10: C10 X10 S10 N10 I10 D10 &middot; R13.1 (N13)" },
-    { name: "SDA", color: "var(--i2c)", taps: "Header A: S25 &middot; S-zone row 09: C09 X09 S09 N09 I09 D09 &middot; R12.1 (S13)" },
+    { name: "+3V3", color: "var(--power)", taps: "Header A: Y25 &middot; Header B: M31 &middot; feeds S1&ndash;S6 pin 2 (row 10), R12.2 (O13), R13.2 (J13)" },
+    { name: "+5V", color: "var(--power)", taps: "Header A: A25 (VIN) &middot; feeds S1&ndash;S6 pin 3 (row 09)" },
+    { name: "SCL", color: "var(--i2c)", taps: "Header A: T25 &middot; S-zone row 07: C07 X07 S07 N07 I07 D07 &middot; R13.1 (N13)" },
+    { name: "SDA", color: "var(--i2c)", taps: "Header A: S25 &middot; S-zone row 08: C08 X08 S08 N08 I08 D08 &middot; R12.1 (S13)" },
   ];
   document.getElementById("rail-grid").innerHTML = rails.map(r => `
     <div class="rail-card" style="--rail-color:${r.color}">
@@ -219,12 +223,12 @@
 
   const connectors = {
     "zone-s": [
-      { ref: "S1", type: "JST-XH-6 · col C", pins: [["1","C11","IRQ1 → P25","i2c"],["2","C10","SCL → T25 (rail)","i2c"],["3","C09","SDA → S25 (rail)","i2c"],["4","C08","+5V → A25 (rail)","power"],["5","C07","+3V3 → Y25 (rail)","power"],["6","C06","GND → Z25/M25 (rail)","gnd"]] },
-      { ref: "S2", type: "JST-XH-6 · col X", pins: [["1","X11","IRQ2 → Q25","i2c"],["2","X10","SCL → T25 (rail)","i2c"],["3","X09","SDA → S25 (rail)","i2c"],["4","X08","+5V → A25 (rail)","power"],["5","X07","+3V3 → Y25 (rail)","power"],["6","X06","GND → Z25/M25 (rail)","gnd"]] },
-      { ref: "S3", type: "JST-XH-6 · col S", pins: [["1","S11","IRQ3 → R25","i2c"],["2","S10","SCL → T25 (rail)","i2c"],["3","S09","SDA → S25 (rail)","i2c"],["4","S08","+5V → A25 (rail)","power"],["5","S07","+3V3 → Y25 (rail)","power"],["6","S06","GND → Z25/M25 (rail)","gnd"]] },
-      { ref: "S4", type: "JST-XH-6 · col N", pins: [["1","N11","IRQ4 → J25","i2c"],["2","N10","SCL → T25 (rail)","i2c"],["3","N09","SDA → S25 (rail)","i2c"],["4","N08","+5V → A25 (rail)","power"],["5","N07","+3V3 → Y25 (rail)","power"],["6","N06","GND → Z25/M25 (rail)","gnd"]] },
-      { ref: "S5", type: "JST-XH-6 · col I", pins: [["1","I11","IRQ5 → K25","i2c"],["2","I10","SCL → T25 (rail)","i2c"],["3","I09","SDA → S25 (rail)","i2c"],["4","I08","+5V → A25 (rail)","power"],["5","I07","+3V3 → Y25 (rail)","power"],["6","I06","GND → Z25/M25 (rail)","gnd"]] },
-      { ref: "S6", type: "JST-XH-6 · col D", pins: [["1","D11","IRQ6 → L25","i2c"],["2","D10","SCL → T25 (rail)","i2c"],["3","D09","SDA → S25 (rail)","i2c"],["4","D08","+5V → A25 (rail)","power"],["5","D07","+3V3 → Y25 (rail)","power"],["6","D06","GND → Z25/M25 (rail)","gnd"]] },
+      { ref: "S1", type: "JST-XH-6 · col C", pins: [["1","C11","GND → Z25/M25 (rail)","gnd"],["2","C10","+3V3 → Y25 (rail)","power"],["3","C09","+5V → A25 (rail)","power"],["4","C08","SDA → S25 (rail)","i2c"],["5","C07","SCL → T25 (rail)","i2c"],["6","C06","IRQ1 → P25","i2c"]] },
+      { ref: "S2", type: "JST-XH-6 · col X", pins: [["1","X11","GND → Z25/M25 (rail)","gnd"],["2","X10","+3V3 → Y25 (rail)","power"],["3","X09","+5V → A25 (rail)","power"],["4","X08","SDA → S25 (rail)","i2c"],["5","X07","SCL → T25 (rail)","i2c"],["6","X06","IRQ2 → Q25","i2c"]] },
+      { ref: "S3", type: "JST-XH-6 · col S", pins: [["1","S11","GND → Z25/M25 (rail)","gnd"],["2","S10","+3V3 → Y25 (rail)","power"],["3","S09","+5V → A25 (rail)","power"],["4","S08","SDA → S25 (rail)","i2c"],["5","S07","SCL → T25 (rail)","i2c"],["6","S06","IRQ3 → R25","i2c"]] },
+      { ref: "S4", type: "JST-XH-6 · col N", pins: [["1","N11","GND → Z25/M25 (rail)","gnd"],["2","N10","+3V3 → Y25 (rail)","power"],["3","N09","+5V → A25 (rail)","power"],["4","N08","SDA → S25 (rail)","i2c"],["5","N07","SCL → T25 (rail)","i2c"],["6","N06","IRQ4 → J25","i2c"]] },
+      { ref: "S5", type: "JST-XH-6 · col I", pins: [["1","I11","GND → Z25/M25 (rail)","gnd"],["2","I10","+3V3 → Y25 (rail)","power"],["3","I09","+5V → A25 (rail)","power"],["4","I08","SDA → S25 (rail)","i2c"],["5","I07","SCL → T25 (rail)","i2c"],["6","I06","IRQ5 → K25","i2c"]] },
+      { ref: "S6", type: "JST-XH-6 · col D", pins: [["1","D11","GND → Z25/M25 (rail)","gnd"],["2","D10","+3V3 → Y25 (rail)","power"],["3","D09","+5V → A25 (rail)","power"],["4","D08","SDA → S25 (rail)","i2c"],["5","D07","SCL → T25 (rail)","i2c"],["6","D06","IRQ6 → L25","i2c"]] },
     ],
     "zone-pullup": [
       { ref: "R12", type: "4.7kΩ · SDA pull-up", pins: [["1","S13","SDA (rail)","i2c"],["2","O13","+3V3 (rail)","power"]] },
