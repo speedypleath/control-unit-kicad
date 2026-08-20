@@ -316,3 +316,239 @@ this in different ways and needed reconciling:
   between connectors" without a placement change; only which row-number text each rail's
   tap-list references was corrected. NP1 (numpad, 8-pin, raw D28–D35 GPIO matrix — not an
   I²C module) is unrelated to this standard and was left untouched.
+
+## Manufactured board redesign (2026-08-20 session 4 — executed, DRC-clean)
+
+Owner asked to redesign `haptic-console-control-unit.kicad_pcb` taking layout inspiration
+from the perfboard (semi-symmetric, mirrored connector groups) but: no perfboard-style
+hole grid, **SMD 0603** for R1–R5/R12–R13 (was THT axial), tighter/more compact spacing
+than the perfboard, **actual routed copper traces** (board currently has 0 track segments
+— always has, this whole file has been placeholder placement only), and use installed
+plugins (`kikit` 1.8.1 at `/usr/local/bin/kikit`; no `freerouting` binary found on PATH,
+but `mcp__kicad-namelessdrake__pcb_autoroute` claims to auto-download `freerouting.jar`
+and needs Java — untested, verify it actually works before trusting it). Owner confirmed:
+board size "smaller, optimized purely for compactness" (not tied to perfboard's 90×150mm),
+SMD package 0603, routing "both" simple-router-and-Freerouting (i.e. use the tool's
+`strategy="auto"`, which tries Freerouting first and falls back to the simple L-router).
+
+**Pre-existing desyncs on this board discovered while scoping (unrelated to prior S1–S6
+fix, still present as of this note):**
+- **`J1` and `U1` (Teensy) pads currently have NO net assigned at all** — this board has
+  never been fully netlist-synced. Every other footprint's pads DO already carry correct
+  net names matching the schematic (verified against a fresh `generate_netlist` dump).
+- **The numpad footprint's reference is `"NP"` not `"NP1"`** (schematic uses `NP1`) —
+  correct footprint (8-pin `JST_XH_B8B-XH-A_1x08`), position `(23, 160.5)`, just the wrong
+  ref string. Rename while touching it.
+- Board outline is a placeholder `0,0`–`300,200` rectangle with everything scattered
+  inside/near it, not a real board shape.
+- `Resistor_SMD` is **not yet in `project/fp-lib-table`** — needs a `(lib (name
+  "Resistor_SMD")(type "KiCad")(uri "${KICAD_FOOTPRINT_DIR}/Resistor_SMD.pretty")...)`
+  entry added (same pattern as the existing `Connector_JST`/`Resistor_THT` rows) before
+  the SMD swap will resolve cleanly outside of just the raw `.kicad_pcb` reference.
+  Footprint confirmed present on disk: `.../Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod`.
+
+**Full ground-truth pin→net map already pulled from the schematic netlist** (via
+`generate_netlist` + direct XML parse — the `trace_netlist_connection`/
+`sync_schematic_to_pcb` tools both still crash on this project's `/`-prefixed local net
+names, see above) for all 30 refs: U1 (67 pads — most map to `/D0`–`/D38`/`GND`/`+3V3`/
+`+5V`/`/IRQ1-6`/`/SDA`/`/SCL`; pads 49/50/53/54/56/57/60/61/62/63/65/66/67 are genuinely
+unconnected USB/VBAT/PROGRAM pins — leave without a net, don't invent one), S1–S6 (already
+correct, see above), B1–B8 (`pin1=GND, pin2=/D20..D27`), CB1–CB5 (`pin1=/D10..D14,
+pin2=GND, pin3=/LED_ARM../LED_ALT, pin4=GND`), J1/J2 (`pin1-4=/D0-D3`/`/D4-D7`,
+`pin5=GND`), NP1 (`pin1-8=/D28..D35`), R1–R5 (`pin1=/LED_*, pin2=/D8../D38` matching CB),
+R12 (`pin1=/SDA, pin2=+3V3`), R13 (`pin1=/SCL, pin2=+3V3`). Re-derive by rerunning
+`generate_netlist` on the schematic + parsing the XML `<nets>` block if this goes stale.
+
+**Compact layout (computed and applied as-is, except board widened 85→88mm — see below)**
+— Teensy4.1 footprint bbox
+confirmed via `pcbnew` as 62.38×22.02mm (dominant part). JST-XH-N width formula from
+earlier sessions: `5.9+(N-1)×2.5mm`. Target board ≈ **85×131mm**, all connectors kept at
+**rotation 0** (native orientation — pins spread along local X, ~6.75mm body depth along
+Y — much more compact than the perfboard's rotation-90 approach, and avoids the
+"rotation makes everything taller" tension noted in the perfboard section above since
+copper traces don't need same-row pin alignment the way hand-wiring bus wires did).
+Vertical zone stacking (top→bottom, 3–4mm gaps between zones): U1 (centered, y-center
+≈16), S1–S6 as 2 rows × 3 cols (S1/S2/S3 then S4/S5/S6, row centers y≈35.5/47.5, x
+centers 21.1/42.5/63.9), R12+R13 SMD tucked below S-block (y≈56, x 35/50), CB1–CB5 in one
+row (y≈65.5, x 9.7/26.1/**42.5 center**/58.9/75.3 — CB3 on board centerline, matching the
+perfboard's "CB3 center, CB2/4 and CB1/5 mirror" pattern), R1–R5 SMD directly below each
+CB (y≈74, same x), B1–B8 as 2 rows × 4 cols mirrored top/bottom (col x 25.4/36.8/48.2/59.6;
+row1 = B1/B2/B3/B4 at y≈83.5, row2 = B8/B7/B6/B5 at the same x columns — i.e. B1↔B8,
+B2↔B7, B3↔B6, B4↔B5 share a column — at y≈95.5), J1/J2 side by side (y≈108.5, x
+33.05/51.95), NP1 centered standalone (y≈121.5, x 42.5).
+
+**Execution — what actually happened, following the pattern already proven safe in the
+S1–S6 footprint-swap section above (pcbnew scripts, not the `kicad-namelessdrake` bulk
+write tools):**
+1. Registered `Resistor_SMD` in `project/fp-lib-table` (same pattern as the existing
+   `Connector_JST`/`Resistor_THT` rows, pointing at `${KICAD_FOOTPRINT_DIR}/Resistor_SMD.pretty`).
+2. Re-derived the full ground-truth pin→net map fresh via `generate_netlist` + direct XML
+   parse (confirmed it matched the summary above exactly, including which 13 of U1's 67
+   pads are genuinely netless). One `pcbnew` script, one process: created the 8 missing
+   `NETINFO_ITEM`s (`/D0`–`/D7`, needed for J1/J2/U1 which had never been netlist-synced),
+   repositioned the 23 non-resistor footprints to the planned grid (`SetPosition` +
+   `SetOrientationDegrees(0)`), renamed `NP`→`NP1`, reassigned every pad's net (fixing
+   J1/U1's previously-missing net data), deleted the 7 old THT resistor footprints, and
+   replaced the placeholder `Edge.Cuts` rectangle with an 85×131mm outline. Saved cleanly
+   (verified via `wc -l`/footprint-count immediately after, per the established rule).
+3. Seven separate `python3` subprocess invocations (one per R1–R5/R12/R13) to
+   `FootprintLoad` a fresh `R_0603_1608Metric` from `Resistor_SMD.pretty`, position it, set
+   value (`220` for R1–R5, `4.7k` for R12/R13), wire up both pad nets, add to board, save —
+   one footprint per process, per the `FootprintLoad`-breaks-on-5th-call bug workaround.
+   All 7 succeeded; verified 30 footprints total afterward.
+4. `kicad-cli pcb drc --severity-all` came back with only 5 warnings (0 errors): a
+   silk-vs-edge clearance issue where CB5's silkscreen slightly overhung the 85mm right
+   edge, plus the 2 pre-existing Teensy-footprint silkscreen-text-height warnings (see
+   below). Fixed by widening the board to **88×131mm** (small standalone `pcbnew` script
+   that removes and re-adds just the 4 `Edge.Cuts` segments — didn't touch component
+   positions) — re-ran DRC, warning gone.
+5. **`mcp__kicad-namelessdrake__pcb_autoroute` is fundamentally broken on this project,
+   confirmed for both `strategy="auto"` and `strategy="simple"`**: it crashes with
+   `invalid literal for int() with base 10: '<netname>'` even after nets were renamed to
+   strip the project's usual leading-slash convention — the crash is because this board's
+   pads use the **codeless `(net "NAME")` format** (no numeric net code — see the
+   file-format quirk noted elsewhere in this doc), and the tool's internal parser
+   apparently assumes `(net CODE "NAME")` and does `int()` on the name. Confirmed harmless
+   (crashes before writing) both times via `wc -l`/footprint-count immediately after.
+6. **Worked around entirely by going around the MCP tool and driving Freerouting
+   directly**, since Java + network access were both available and `freerouting.jar` isn't
+   actually hard to get:
+   - `pcbnew.ExportSpecctraDSN(board, path)` / `pcbnew.ImportSpecctraSES(board, path)`
+     (module-level functions) round-trip a board through the standard Specctra DSN/SES
+     interchange format entirely via KiCad's own writer/parser — this sidesteps the
+     namelessdrake tool's broken codeless-net-name parsing completely, since KiCad itself
+     handles the board's on-disk format.
+   - Downloaded `freerouting-2.3.0.jar` straight from the GitHub releases API
+     (`api.github.com/repos/freerouting/freerouting/releases/latest`) — no local copy was
+     cached anywhere, but the KiCad-installed Freerouting **plugin** (a separate thing from
+     the namelessdrake MCP server) already had its own jar at
+     `~/Documents/KiCad/10.0/3rdparty/plugins/app_freerouting_kicad-plugin/jar/` — either
+     works, they're the same jar.
+   - **`java -jar freerouting.jar -de board.dsn -do out.ses -mp N` silently does NOT save
+     the output file** (exits 0, logs nothing about saving, no file appears anywhere) —
+     this is what made the namelessdrake tool look broken even in its own right, separate
+     from the net-name-parsing crash. **Fix: add `-host KiCad`.** Diagnosed by finding the
+     KiCad plugin's own debug log
+     (`$TMPDIR/freerouting/kicad/freerouting_kicad_plugin.log`) from an unrelated earlier
+     session, which showed the plugin's actual invocation always includes `-host KiCad`;
+     reproducing that flag made the CLI immediately start logging `Saving '<path>'...` and
+     the `.ses` file appeared. Without `-host KiCad`, routing still runs to completion
+     (0 unrouted, 0 violations reported in the log) but the result is silently discarded —
+     don't trust a clean exit code/log alone as evidence the file was written; always
+     `ls`/check the output path.
+   - Routing itself was clean on the first real attempt: 108/108 nets routed, 0 violations,
+     final Freerouting score 999.98/1000, ~70–100s wall clock across 6 auto-routing passes
+     (`-mt 1` recommended — the tool's own log warns multi-threaded optimization is known
+     to introduce clearance violations).
+   - `pcbnew.ImportSpecctraSES` applied the routing back onto the board cleanly (verified
+     via `wc -l` before/after: footprint count unchanged at 30, segment count went from 0
+     to 697, via count 0 to 42).
+7. Final `kicad-cli pcb drc --severity-all`: **0 errors**, 10 warnings — 8 `via_dangling`
+   (harmless leftover fanout vias from Freerouting's SMD-pad escape routing; confirmed
+   harmless since the same report shows 0 unconnected pads) + the 2 pre-existing Teensy
+   silkscreen-text-height warnings (unrelated, present before this session too). Rendered
+   with `kicad-cli pcb render` (`renders/manufactured-board-v2-render.png`) and visually
+   confirmed the semi-symmetric layout, all-2-layer routing, and via placement look
+   correct.
+8. Deleted a stray `project/temp-freerouting.dsn` left over from an unrelated prior
+   session's DSN-export attempt (dated the day before this session, unrelated to any file
+   touched here) — harmless debug artifact, not part of the design.
+
+**Follow-up cleanup (same session): all DRC warnings resolved, board now 0 errors/0
+warnings.** Owner asked to remove the remaining warnings. Fixed via a small `pcbnew`
+script (positions/nets/footprint count verified unchanged before and after each step):
+- Resized U1's two undersized `fp_text` items (`"DVJ6A"`, `"MIMXRT1062"`, both on
+  `F.SilkS`) from 0.7mm to 0.8mm to clear the silk-text-height minimum. The Teensy
+  footprint's other silkscreen labels (`USB`, `USB Host`, `Ethernet`, `Micro SD`) were
+  already 1mm and never flagged — only these two were undersized.
+- Deleted the 8 `via_dangling` vias by exact `(x,y)` match (list is in the script; they
+  were harmless Freerouting SMD-fanout leftovers connected on only one layer).
+- Deleting those vias left 2 short dead-end `F.Cu` track stubs (one directly, one that
+  only appeared after the first stub was removed — DRC has to be re-run after *each*
+  deletion pass since removing one dangling item can expose the next one down the same
+  branch) — both were genuine redundant spurs (the real net path already existed via a
+  separate `B.Cu` route through a via), confirmed by `0 unconnected pads` staying true
+  throughout, and removed the same way (exact endpoint-coordinate match).
+- Final `kicad-cli pcb drc --severity-all`: **0 violations, 0 unconnected items.**
+  Re-rendered `renders/manufactured-board-v2-render.png` to confirm.
+
+No ground pour/zone was added (routing is all discrete traces, no copper fill); board
+outline is a plain rectangle with no mounting holes — neither was asked for.
+
+## Manufactured board green color + gerbers + README (2026-08-20 session 5)
+
+**Making the manufactured board render green was NOT the same fix as the perfboard's
+tan-vs-green trick, and cost real trial-and-error to figure out.** The perfboard's
+tan/green look comes entirely from its **dielectric ("core") layer color** showing
+through a **fully transparent** solder mask (`F.Mask`/`B.Mask` alpha `00`) — real
+perfboard has no soldermask, so the substrate color IS the visible color. The
+manufactured board's stackup came in with `(color "Green")` (a bare *named* string, not
+hex) on both mask layers and **no color at all** on the dielectric layer. Neither
+`kicad-cli pcb render`'s default preset nor `--use-board-stackup-colors` (bare flag)
+made the named `"Green"` mask color show up — the board rendered flat **black**
+regardless of what hex value was tried on `F.Mask`/`B.Mask` (tested both the original
+named color and explicit opaque-green hex, no change). **What actually controls the
+visible color for a board with little/no copper pour is the dielectric layer's color**
+(same root cause as the perfboard, just not previously obvious since that board's
+dielectric was already colored from the start) — adding an explicit
+`(color "#147A3CFF")` to the `dielectric 1` layer (around line 52) is what made the
+board render green. The mask layer colors were left as the opaque-green hex edit
+(harmless/inert either way, given the above) rather than reverted, since a real green
+soldermask board is the intended final look. Verified DRC unchanged (0/0) after the
+color-only edit. Render: `renders/manufactured-board-green-3d.png`
+(`kicad-cli pcb render --quality high --floor --rotate "-25,0,25"` — the earlier
+`--quality basic`, no-`--floor` render used for DRC screenshots renders as a flat
+2D-style orthogonal view and is not useful for judging board color; kept as
+`renders/manufactured-board-v2-render.png` for that reason, superseded by the 3D one
+for anything color-related).
+
+**Perfboard green render regenerated** (`renders/perfboard-3d-render.png` +
+`-green.png`) since the owner had edited `haptic-console-control-unit-perfboard.kicad_pcb`
+directly (outside this session) since the last render — old renders were stale. Used the
+established swap-color/render/revert-color pattern (verified via exact hex-string
+`grep -c` counts before and after, not just DRC) — reverted cleanly, confirmed via
+`git diff --stat` showing zero color-line changes beyond the owner's own prior edits.
+**Not** fixed: perfboard DRC (381 violations) — owner explicitly scoped the DRC-warning
+cleanup to "the normal one not the perfboard".
+
+**Gerbers**: `kicad-cli pcb export gerbers` + `kicad-cli pcb export drill`, output to
+`project/gerbers/`, zipped to `project/haptic-console-control-unit-gerbers.zip`. No
+kikit fab preset (e.g. JLCPCB-specific renaming) was used — plain KiCad-default Gerber
+X2 + Excellon drill, since no specific fab house was requested.
+
+**`.kicad_pro` auto-creation bug recurred**: the owner opened/saved the project-less
+perfboard `.kicad_pcb` again this session (outside this session's own tool calls — via
+KiCad GUI, going by the timestamp), which silently created
+`project/haptic-console-control-unit-perfboard.kicad_pro` again (same root cause as the
+2026-08-19/20 note above — this file is meant to stay project-less). Deleted per owner's
+explicit "I only want one project with one schematic and two pcbs" — this will keep
+recurring any time the perfboard `.kicad_pcb` is opened directly in the KiCad GUI (not
+just via `pcbnew` scripts); no fix for the underlying KiCad behavior, just delete the
+stray `.kicad_pro` (and check for a matching `.kicad_prl`, gitignored/harmless) after
+any perfboard GUI session.
+
+**`kicad-cli pcb render` silently drops two auto-generated report files** in the
+*board's own directory* (not a temp dir) whenever a footprint 3D model can't be
+resolved: `<board>_missing3Dmodels.txt` and `<board>_log_missing3Dmodels.txt`. Hit
+this while investigating why these appeared — U1's Teensy 4.1 footprint references
+`${KICAD_USER_DIR}/teensy.pretty/Teensy_4.1_Assembly.STEP` (an env-var path pointing at
+KiCad's *user* library dir), but the project's vendored `libraries/teensy.pretty/`
+(the one actually wired into `fp-lib-table` via `${KIPRJMOD}/../libraries/...`, see
+Library setup above) **only contains `.kicad_mod` footprint files — no `.STEP`/`.stp`
+files at all**, confirmed via a filesystem-wide search finding no Teensy STEP file
+anywhere on this machine, not just outside the repo. This is cosmetic only (3D
+preview/render shows no chip body for U1; does not affect ERC/DRC/gerbers/fab) and was
+apparently always missing, not a regression from this session's changes. If a real 3D
+model is ever wanted, it would need to be sourced separately (XenGi's `teensy.pretty`
+upstream repo doesn't bundle STEP files either, per the Sources list in `README.md`) and
+placed at that path, or the footprint's 3D model reference repointed to wherever it
+ends up. The two report `.txt` files are pure debug output, regenerated every render
+call — delete them, don't commit them (done this session).
+
+**README.md rewritten** — the old version was stale from the very first placement pass
+(described a 300×200mm single-board layout with "no routing yet"; none of that has been
+true since the sessions above). Now documents both boards, embeds the four current
+renders (schematic, manufactured-green-3d, perfboard-green, implicitly the tan perfboard
+too is still in `renders/` though only the green one is embedded), links the gerbers zip
+and the wiring guide, and states the v1.1 connector standard. Re-derive/update again if
+either board's layout changes materially.

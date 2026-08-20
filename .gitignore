@@ -26,3 +26,7 @@ fp-info-cache
 
 # macOS
 .DS_Store
+
+# Unzipped gerber/drill output — project/haptic-console-control-unit-gerbers.zip
+# is the tracked deliverable, this directory is regenerated from it
+project/gerbers/

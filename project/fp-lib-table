@@ -2,6 +2,7 @@
   (version 7)
   (lib (name "Connector_JST")(type "KiCad")(uri "${KICAD_FOOTPRINT_DIR}/Connector_JST.pretty")(options "")(descr "JST connectors"))
   (lib (name "Resistor_THT")(type "KiCad")(uri "${KICAD_FOOTPRINT_DIR}/Resistor_THT.pretty")(options "")(descr "THT resistors"))
+  (lib (name "Resistor_SMD")(type "KiCad")(uri "${KICAD_FOOTPRINT_DIR}/Resistor_SMD.pretty")(options "")(descr "SMD resistors"))
   (lib (name "Pin_Headers")(type "KiCad")(uri "${KICAD_FOOTPRINT_DIR}/Pin_Headers.pretty")(options "")(descr "Pin headers"))
   (lib (name "teensy")(type "KiCad")(uri "${KIPRJMOD}/../libraries/teensy.pretty")(options "")(descr "Teensy footprints (XenGi)"))
   (lib (name "digikey-footprints")(type "KiCad")(uri "${KICAD_USER_DIR}/digikey-kicad-library/digikey-footprints.pretty")(options "")(descr "Digi-Key atomic parts footprints"))

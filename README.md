@@ -1,33 +1,67 @@
 # Haptic Console — Control Unit (M6) KiCad Project
 
-KiCad project for the Control Unit module of the Haptic Console v1.0.
+KiCad project for the Control Unit module of the Haptic Console v1.0. One schematic,
+two PCBs: a compact manufactured board (SMD, routed, ready for fab) and a hand-wireable
+perfboard build.
 
-## Layout (300×200mm)
-- U1 Teensy 4.1 — center-left (60,100), footprint `teensy:Teensy41` (XenGi, modern format)
-- J1, J2 — 5-pin JST XH (joysticks): J1=/D0-/D3+GND, J2=/D4-/D7+GND
-- B1-B8 — tactile buttons, lower right
-- S1-S6 — 8-pin JST XH rail connectors, right edge (x=275)
-- R1-R5, R12, R13 — resistors; CB1-CB5 — caps; NP — mounting point
+## Schematic
 
-## Status
-- Placement complete, all components inside 300×200 outline
-- U1 reference fixed (was REF**), Teensy 4.1 3D model renders
-- J1/J2 nets assigned
-- No routing yet, no zones
+![Schematic](renders/schematic_readable.png)
+
+U1 Teensy 4.1, S1–S6 haptic driver connectors (6-pin JST-XH, [XH2.54 v1.1 standard](#connector-standard)),
+B1–B8 tactile buttons, CB1–CB5 + R1–R5 LED/button conditioning, R12/R13 I²C pull-ups,
+J1/J2 joystick headers, NP1 numpad matrix. ERC: 0 errors/0 warnings.
+
+## Manufactured board
+
+![Manufactured board](renders/manufactured-board-green-3d.png)
+
+Compact (88×131mm) layout, SMD 0603 resistors, fully autorouted (697 track segments,
+42 vias, 0 unrouted nets). DRC: 0 errors/0 warnings.
+
+![Gerber layout, top view](renders/manufactured-board-gerber-layout.png)
+
+Gerbers + drill file: [`project/haptic-console-control-unit-gerbers.zip`](project/haptic-console-control-unit-gerbers.zip)
+(Gerber X2 + Excellon drill, plain KiCad-default output — no fab-specific renaming).
+View with [gerbv](https://gerbv.github.io/) or unzip and drag into your fab's order-check
+tool (JLCPCB/PCBWay/OSH Park all accept the zip directly).
+
+## Perfboard build
+
+![Perfboard](renders/perfboard-3d-render-green.png)
+
+Hand-wireable 90×150mm 32×50-hole perfboard layout, same schematic/nets, laid out for
+row/column GND+3V3+5V+SDA+SCL bus wiring. Full per-connector wiring plan (every
+connection as a board grid reference, e.g. `S1.1 → P25`) in
+[`docs/wiring-guide.html`](docs/wiring-guide.html). Print
+[`renders/perfboard-placement-template-1to1.pdf`](renders/perfboard-placement-template-1to1.pdf)
+at 100%/Actual Size for physical placement.
+
+## Connector standard
+
+S1–S6 haptic-module cables follow **XH2.54 6-pin — Haptic Console Connector Standard
+v1.1**: pin 1 GND, pin 2 3.3V, pin 3 5V, pin 4 SDA, pin 5 SCL, pin 6 IRQ.
 
 ## Libraries
-- `teensy.pretty` — XenGi Teensy footprints, UPGRADED to modern format (v20260206), 3D model `${KICAD_USER_DIR}/teensy.pretty/Teensy_4.1_Assembly.STEP`
-- `digikey-kicad-library` (~/Library/Preferences/kicad/) — 464 atomic footprints, modernized, 3D models
-- `SparkFun-KiCad-Libraries` (~/Library/Preferences/kicad/) — 21 footprint + 40 symbol libs (HX711 in SparkFun-Sensor)
-- Project fp-lib-table + sym-lib-table wired for all of the above
+
+- `teensy.pretty` / `teensy.kicad_sym` — XenGi Teensy 4.1 footprint + symbol (not stock
+  KiCad), vendored in `libraries/`.
+- `Connector_JST`, `Resistor_THT`, `Resistor_SMD`, `Device`, `Connector_Generic`, `power`
+  — stock KiCad 10 libraries.
+- `digikey-kicad-library`, `SparkFun-KiCad-Libraries` — additional atomic parts.
+- Project `fp-lib-table` / `sym-lib-table` wired for all of the above.
 
 ## Files
-- `project/` — schematic, board, project file, lib tables
-- `libraries/` — XenGi `teensy.pretty` (modernized footprints)
-- `renders/` — schematic + PCB renders (2D composite, 3D top 4K)
-- `docs/` — build log, kicad-mcp lessons
+
+- `project/` — schematic, both boards, project files, lib tables, `gerbers/` +
+  `*-gerbers.zip` (manufactured board fab output)
+- `libraries/` — vendored XenGi `teensy.pretty`
+- `renders/` — schematic + PCB renders
+- `docs/` — wiring guide, build log, kicad-mcp lessons
 
 ## Sources
-- Teensy 4.1 footprints + 3D: https://github.com/XenGi/teensy.pretty
+
+- Teensy 4.1 footprints: https://github.com/XenGi/teensy.pretty
 - Digi-Key atomic parts: https://github.com/Digi-Key/digikey-kicad-library
 - SparkFun: https://github.com/sparkfun/SparkFun-KiCad-Libraries
+- KiCad stock footprints: https://gitlab.com/kicad/libraries/kicad-footprints
