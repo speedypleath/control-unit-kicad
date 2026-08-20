@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Control Unit Wiring Guide</title>
+<style>
+  :root {
+    --bg: #f3ede2; --surface: #fffdf8; --surface-2: #ece3d3; --ink: #241c15;
+    --muted: #6b5f4f; --border: #d8cbb2; --copper: #b1662f;
+    --power: #a63b2e; --power-bg: #f6e2dd;
+    --gnd: #4a4640; --gnd-bg: #e6e2da;
+    --i2c: #8a5a17; --i2c-bg: #f1e2c4;
+    --signal: #235e78; --signal-bg: #dfeaef;
+    --shadow: 0 1px 2px rgba(36,28,21,0.06), 0 8px 24px rgba(36,28,21,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17130f; --surface: #211a14; --surface-2: #2a2119; --ink: #f1e7d7;
+      --muted: #a6957d; --border: #3c3025; --copper: #e0a868;
+      --power: #e2897b; --power-bg: #3a221e;
+      --gnd: #cfc7b8; --gnd-bg: #2c2822;
+      --i2c: #e8c37e; --i2c-bg: #3a2e15;
+      --signal: #8fc4de; --signal-bg: #1c2f37;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17130f; --surface: #211a14; --surface-2: #2a2119; --ink: #f1e7d7;
+    --muted: #a6957d; --border: #3c3025; --copper: #e0a868;
+    --power: #e2897b; --power-bg: #3a221e;
+    --gnd: #cfc7b8; --gnd-bg: #2c2822;
+    --i2c: #e8c37e; --i2c-bg: #3a2e15;
+    --signal: #8fc4de; --signal-bg: #1c2f37;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.5; padding: 0 0 6rem; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 3rem 1.5rem 0; }
+  header.page-head { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2.5rem; padding-bottom: 1.75rem; border-bottom: 3px solid var(--copper); }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--copper); }
+  h1 { font-weight: 800; font-size: clamp(2rem, 5vw, 2.7rem); margin: 0; }
+  .dek { color: var(--muted); font-size: 1rem; max-width: 68ch; }
+  h2 { font-weight: 700; font-size: 1.4rem; margin: 0 0 0.25rem; }
+  h3 { font-weight: 600; font-size: 1.05rem; margin: 0; }
+  section { margin-bottom: 3rem; }
+  .section-intro { color: var(--muted); font-size: 0.92rem; max-width: 68ch; margin: 0 0 1.25rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; padding: 0.85rem 1.1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 2.5rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.5rem; font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--muted); }
+  .swatch { width: 0.65rem; height: 0.65rem; border-radius: 2px; flex: none; }
+  .swatch.power { background: var(--power); } .swatch.gnd { background: var(--gnd); }
+  .swatch.i2c { background: var(--i2c); } .swatch.signal { background: var(--signal); }
+  .grid-ref { font-family: ui-monospace, monospace; font-weight: 700; background: var(--surface-2); border-radius: 4px; padding: 0.05rem 0.4rem; }
+  .header-strip { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); padding: 1.25rem; margin-bottom: 1.25rem; overflow-x: auto; }
+  .header-strip-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.9rem; gap: 1rem; flex-wrap: wrap; }
+  .header-strip-title .note { font-family: ui-monospace, monospace; font-size: 0.74rem; color: var(--muted); }
+  .pin-row { display: grid; grid-template-columns: repeat(24, minmax(56px, 1fr)); gap: 3px; min-width: 950px; }
+  .pin-cell { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.4rem 0.15rem 0.5rem; border-radius: 6px; text-align: center; }
+  .pin-cell.power { background: var(--power-bg); } .pin-cell.gnd { background: var(--gnd-bg); }
+  .pin-cell.i2c { background: var(--i2c-bg); } .pin-cell.signal { background: var(--signal-bg); }
+  .pin-cell .grid { font-family: ui-monospace, monospace; font-weight: 700; font-size: 0.78rem; }
+  .pin-cell.power .grid { color: var(--power); } .pin-cell.gnd .grid { color: var(--gnd); }
+  .pin-cell.i2c .grid { color: var(--i2c); } .pin-cell.signal .grid { color: var(--signal); }
+  .pin-cell .net { font-family: ui-monospace, monospace; font-size: 0.68rem; color: var(--muted); }
+  .pin-cell .dest { font-size: 0.62rem; color: var(--muted); }
+  .rail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+  .rail-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--rail-color, var(--copper)); border-radius: 8px; box-shadow: var(--shadow); padding: 0.85rem 1rem; }
+  .rail-card .rail-name { font-family: ui-monospace, monospace; font-weight: 700; font-size: 0.85rem; color: var(--rail-color, var(--copper)); margin-bottom: 0.35rem; }
+  .rail-card .rail-taps { font-size: 0.82rem; color: var(--muted); }
+  .zone { margin-bottom: 2.25rem; }
+  .conn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.9rem; }
+  .conn-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+  .conn-card .conn-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0.6rem 0.85rem; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .conn-card .conn-head .ref { font-family: ui-monospace, monospace; font-weight: 700; font-size: 0.95rem; }
+  .conn-card .conn-head .type { font-size: 0.66rem; color: var(--muted); font-family: ui-monospace, monospace; }
+  .conn-card table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .conn-card td { padding: 0.4rem 0.85rem; border-top: 1px solid var(--border); }
+  .conn-card tr:first-child td { border-top: none; }
+  .conn-card td.pin { font-family: ui-monospace, monospace; color: var(--muted); width: 2rem; }
+  .conn-card td.gridref { font-family: ui-monospace, monospace; font-weight: 700; width: 3.2rem; }
+  .conn-card td.dest { text-align: right; font-family: ui-monospace, monospace; font-weight: 500; }
+  .conn-card td.dest.power { color: var(--power); } .conn-card td.dest.gnd { color: var(--gnd); }
+  .conn-card td.dest.i2c { color: var(--i2c); } .conn-card td.dest.signal { color: var(--signal); }
+  .callout { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--copper); border-radius: 8px; box-shadow: var(--shadow); padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: var(--muted); }
+  .callout strong { color: var(--ink); }
+  footer { max-width: 980px; margin: 3rem auto 0; padding: 1.5rem 1.5rem 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-head">
+    <span class="eyebrow">Haptic Console &middot; Control Unit &middot; Perfboard Build</span>
+    <h1>Wiring Guide</h1>
+    <p class="dek">Every connection, given as the actual perfboard hole (column letter + row number, matching the printed grid on your board) &mdash; not an abstract header-pin number. Read a grid ref, find that hole, solder.</p>
+  </header>
+
+  <div class="legend">
+    <span class="legend-item"><span class="swatch power"></span>Power (+5V / +3V3 / VIN)</span>
+    <span class="legend-item"><span class="swatch gnd"></span>Ground</span>
+    <span class="legend-item"><span class="swatch i2c"></span>I&sup2;C bus (SCL / SDA / IRQ)</span>
+    <span class="legend-item"><span class="swatch signal"></span>Signal (per-pin GPIO)</span>
+  </div>
+
+  <div class="callout">
+    <strong>Layout note (2026-08-20 revision):</strong> every JST header group now shares one anchor row per group, mirrored left/right to match the physical panel (S1&ndash;S6 haptic drivers centered; B1&ndash;B4 mirrors B5&ndash;B8; J1 mirrors J2; CB1&ndash;CB5 near-symmetric about the center column). Because each group shares an anchor row, the same pin number lands on the same row across every connector in the group &mdash; so GND (and +3V3/+5V/SCL/SDA for S1&ndash;S6) can be bussed with one straight wire along that row instead of home-running each connector separately. All content fits within the physical board's 32&times;50 hole grid (columns A&ndash;Z/A&ndash;F, rows 01&ndash;50); nothing has been placed past row 50.
+  </div>
+
+  <section>
+    <h2>Teensy header pinout</h2>
+    <p class="section-intro">Two 24-pin female sockets, row A on hole-row <span class="grid-ref">25</span>, row B on hole-row <span class="grid-ref">31</span> &mdash; unchanged by this revision. Every cell shows the real board hole under that header pin.</p>
+    <div class="header-strip">
+      <div class="header-strip-title"><h3>Header A &mdash; row 25</h3><span class="note">Teensy pins 25&ndash;48</span></div>
+      <div class="pin-row" id="header-a"></div>
+    </div>
+    <div class="header-strip">
+      <div class="header-strip-title"><h3>Header B &mdash; row 31</h3><span class="note">Teensy pins 1&ndash;24</span></div>
+      <div class="pin-row" id="header-b"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Shared bus rails</h2>
+    <p class="section-intro">Run each as one continuous wire past every hole listed, rather than home-running each connector back to the header separately. Rows refer to the connector-side anchor rows below, not the Teensy header rows above.</p>
+    <div class="rail-grid" id="rail-grid"></div>
+  </section>
+
+  <section class="zone">
+    <h2>S1&ndash;S6 &mdash; haptic drivers (I&sup2;C)</h2>
+    <p class="section-intro">Rotated vertical, one per column, centered on the board (cols D&ndash;S1&hellip;C&ndash;S6). GND/SCL/SDA/+5V/+3V3 all fall on the same row across all six &mdash; a horizontal bus wire along that row reaches every connector.</p>
+    <div class="conn-grid" id="zone-s"></div>
+  </section>
+
+  <section class="zone">
+    <h2>R12 / R13 &mdash; I&sup2;C pull-ups</h2>
+    <p class="section-intro">Sit just below the S-zone, tapping the SDA/SCL/+3V3 rails directly.</p>
+    <div class="conn-grid" id="zone-pullup"></div>
+  </section>
+
+  <section class="zone">
+    <h2>B1&ndash;B8 &mdash; diamond buttons (mirrored)</h2>
+    <p class="section-intro">B1&ndash;B4 (left cluster) mirror B5&ndash;B8 (right cluster) on the same row band. All eight pin-1 (GND) holes share row 16 &mdash; one wire spans the whole row and grounds all eight connectors.</p>
+    <div class="conn-grid" id="zone-b"></div>
+  </section>
+
+  <section class="zone">
+    <h2>J1 / J2 &mdash; joysticks (mirrored)</h2>
+    <p class="section-intro">J1 (left stick) mirrors J2 (right stick). Pin 5 (GND) on both lands on row 35.</p>
+    <div class="conn-grid" id="zone-j"></div>
+  </section>
+
+  <section class="zone">
+    <h2>CB1&ndash;CB5 &mdash; LED buttons (near-symmetric)</h2>
+    <p class="section-intro">CB3 sits on the center column; CB2/CB4 and CB1/CB5 mirror around it. Both GND pins (2 and 4) fall on rows 46 and 44 across all five connectors &mdash; two possible rail rows, use either or both.</p>
+    <div class="conn-grid" id="zone-cb"></div>
+  </section>
+
+  <section class="zone">
+    <h2>R1&ndash;R5 &mdash; LED series resistors</h2>
+    <p class="section-intro">One row below CB1&ndash;CB5, each resistor under its matching connector's column.</p>
+    <div class="conn-grid" id="zone-r"></div>
+  </section>
+
+  <section class="zone">
+    <h2>NP1 &mdash; numpad</h2>
+    <p class="section-intro">Unchanged by this revision &mdash; pushed to the board's right edge (col B) to dodge the Teensy header row it shares rows with.</p>
+    <div class="conn-grid" id="zone-np"></div>
+  </section>
+
+  <footer>
+    Derived directly from the schematic netlist and the final <code>haptic-console-control-unit-perfboard.kicad_pcb</code> placement. GND and +5V are fully available on the main header (pins 1/34/47 and 48/VIN) &mdash; the Teensy's USB-Host and Ethernet auxiliary pads are not needed. Grid refs use the board's own printed columns (F E D C B A Z Y X&hellip;G F E D C B A) and rows (01&ndash;50).
+  </footer>
+</div>
+
+<script>
+  const A = [
+    ["A25","+5V","VIN","power"],["Z25","GND","","gnd"],["Y25","+3V3","(out)","power"],
+    ["X25","D23","B4.2","signal"],["W25","D22","B3.2","signal"],["V25","D21","B2.2","signal"],["U25","D20","B1.2","signal"],
+    ["T25","SCL","bus","i2c"],["S25","SDA","bus","i2c"],
+    ["R25","IRQ3","S3.1","i2c"],["Q25","IRQ2","S2.1","i2c"],["P25","IRQ1","S1.1","i2c"],
+    ["O25","D14","CB5.1","signal"],["N25","D13","CB4.1","signal"],["M25","GND","","gnd"],
+    ["L25","IRQ6","S6.1","i2c"],["K25","IRQ5","S5.1","i2c"],["J25","IRQ4","S4.1","i2c"],
+    ["I25","D38","R5.2","signal"],["H25","D37","R4.2","signal"],["G25","D36","R3.2","signal"],
+    ["F25","D35","NP1.8","signal"],["E25","D34","NP1.7","signal"],["D25","D33","NP1.6","signal"],
+  ];
+  const B = [
+    ["A31","GND","","gnd"],["Z31","D0","J1.1","signal"],["Y31","D1","J1.2","signal"],["X31","D2","J1.3","signal"],["W31","D3","J1.4","signal"],
+    ["V31","D4","J2.1","signal"],["U31","D5","J2.2","signal"],["T31","D6","J2.3","signal"],["S31","D7","J2.4","signal"],
+    ["R31","D8","R1.2","signal"],["Q31","D9","R2.2","signal"],
+    ["P31","D10","CB1.1","signal"],["O31","D11","CB2.1","signal"],["N31","D12","CB3.1","signal"],
+    ["M31","+3V3","","power"],
+    ["L31","D24","B5.2","signal"],["K31","D25","B6.2","signal"],["J31","D26","B7.2","signal"],["I31","D27","B8.2","signal"],
+    ["H31","D28","NP1.1","signal"],["G31","D29","NP1.2","signal"],["F31","D30","NP1.3","signal"],["E31","D31","NP1.4","signal"],["D31","D32","NP1.5","signal"],
+  ];
+  function renderRow(id, pins) {
+    document.getElementById(id).innerHTML = pins.map(p => `
+      <div class="pin-cell ${p[3]}">
+        <span class="grid">${p[0]}</span>
+        <span class="net">${p[1]}</span>
+        <span class="dest">${p[2] || "&mdash;"}</span>
+      </div>`).join("");
+  }
+  renderRow("header-a", A);
+  renderRow("header-b", B);
+
+  const rails = [
+    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 06: C06 X06 S06 N06 I06 D06 (S1&ndash;S6 pin 6) &middot; feeds Header A Z25/M25" },
+    { name: "GND · B-zone", color: "var(--gnd)", taps: "Row 16: D16 Z16 V16 R16 C16 G16 K16 O16 (all of B1&ndash;B8 pin 1) &middot; feeds Header B A31" },
+    { name: "GND · J-zone", color: "var(--gnd)", taps: "Row 35: X35 I35 (J1/J2 pin 5)" },
+    { name: "GND · CB-zone", color: "var(--gnd)", taps: "Row 46: Z46 U46 P46 K46 F46 &middot; Row 44: Z44 U44 P44 K44 F44 (both GND pins of CB1&ndash;CB5)" },
+    { name: "+3V3", color: "var(--power)", taps: "Header A: Y25 &middot; Header B: M31 &middot; feeds S1&ndash;S6 pin 5 (row 07), R12.2 (O13), R13.2 (J13)" },
+    { name: "+5V", color: "var(--power)", taps: "Header A: A25 (VIN) &middot; feeds S1&ndash;S6 pin 4 (row 08)" },
+    { name: "SCL", color: "var(--i2c)", taps: "Header A: T25 &middot; S-zone row 10: C10 X10 S10 N10 I10 D10 &middot; R13.1 (N13)" },
+    { name: "SDA", color: "var(--i2c)", taps: "Header A: S25 &middot; S-zone row 09: C09 X09 S09 N09 I09 D09 &middot; R12.1 (S13)" },
+  ];
+  document.getElementById("rail-grid").innerHTML = rails.map(r => `
+    <div class="rail-card" style="--rail-color:${r.color}">
+      <div class="rail-name">${r.name}</div>
+      <div class="rail-taps">${r.taps}</div>
+    </div>`).join("");
+
+  const connectors = {
+    "zone-s": [
+      { ref: "S1", type: "JST-XH-6 · col C", pins: [["1","C11","IRQ1 → P25","i2c"],["2","C10","SCL → T25 (rail)","i2c"],["3","C09","SDA → S25 (rail)","i2c"],["4","C08","+5V → A25 (rail)","power"],["5","C07","+3V3 → Y25 (rail)","power"],["6","C06","GND → Z25/M25 (rail)","gnd"]] },
+      { ref: "S2", type: "JST-XH-6 · col X", pins: [["1","X11","IRQ2 → Q25","i2c"],["2","X10","SCL → T25 (rail)","i2c"],["3","X09","SDA → S25 (rail)","i2c"],["4","X08","+5V → A25 (rail)","power"],["5","X07","+3V3 → Y25 (rail)","power"],["6","X06","GND → Z25/M25 (rail)","gnd"]] },
+      { ref: "S3", type: "JST-XH-6 · col S", pins: [["1","S11","IRQ3 → R25","i2c"],["2","S10","SCL → T25 (rail)","i2c"],["3","S09","SDA → S25 (rail)","i2c"],["4","S08","+5V → A25 (rail)","power"],["5","S07","+3V3 → Y25 (rail)","power"],["6","S06","GND → Z25/M25 (rail)","gnd"]] },
+      { ref: "S4", type: "JST-XH-6 · col N", pins: [["1","N11","IRQ4 → J25","i2c"],["2","N10","SCL → T25 (rail)","i2c"],["3","N09","SDA → S25 (rail)","i2c"],["4","N08","+5V → A25 (rail)","power"],["5","N07","+3V3 → Y25 (rail)","power"],["6","N06","GND → Z25/M25 (rail)","gnd"]] },
+      { ref: "S5", type: "JST-XH-6 · col I", pins: [["1","I11","IRQ5 → K25","i2c"],["2","I10","SCL → T25 (rail)","i2c"],["3","I09","SDA → S25 (rail)","i2c"],["4","I08","+5V → A25 (rail)","power"],["5","I07","+3V3 → Y25 (rail)","power"],["6","I06","GND → Z25/M25 (rail)","gnd"]] },
+      { ref: "S6", type: "JST-XH-6 · col D", pins: [["1","D11","IRQ6 → L25","i2c"],["2","D10","SCL → T25 (rail)","i2c"],["3","D09","SDA → S25 (rail)","i2c"],["4","D08","+5V → A25 (rail)","power"],["5","D07","+3V3 → Y25 (rail)","power"],["6","D06","GND → Z25/M25 (rail)","gnd"]] },
+    ],
+    "zone-pullup": [
+      { ref: "R12", type: "4.7kΩ · SDA pull-up", pins: [["1","S13","SDA (rail)","i2c"],["2","O13","+3V3 (rail)","power"]] },
+      { ref: "R13", type: "4.7kΩ · SCL pull-up", pins: [["1","N13","SCL (rail)","i2c"],["2","J13","+3V3 (rail)","power"]] },
+    ],
+    "zone-b": [
+      { ref: "B1", type: "JST-XH-2 · col D", pins: [["1","D16","GND (rail)","gnd"],["2","D15","D20 → U25","signal"]] },
+      { ref: "B2", type: "JST-XH-2 · col Z", pins: [["1","Z16","GND (rail)","gnd"],["2","Z15","D21 → V25","signal"]] },
+      { ref: "B3", type: "JST-XH-2 · col V", pins: [["1","V16","GND (rail)","gnd"],["2","V15","D22 → W25","signal"]] },
+      { ref: "B4", type: "JST-XH-2 · col R", pins: [["1","R16","GND (rail)","gnd"],["2","R15","D23 → X25","signal"]] },
+      { ref: "B8", type: "JST-XH-2 · col O", pins: [["1","O16","GND (rail)","gnd"],["2","O15","D27 → I31","signal"]] },
+      { ref: "B7", type: "JST-XH-2 · col K", pins: [["1","K16","GND (rail)","gnd"],["2","K15","D26 → J31","signal"]] },
+      { ref: "B6", type: "JST-XH-2 · col G", pins: [["1","G16","GND (rail)","gnd"],["2","G15","D25 → K31","signal"]] },
+      { ref: "B5", type: "JST-XH-2 · col C", pins: [["1","C16","GND (rail)","gnd"],["2","C15","D24 → L31","signal"]] },
+    ],
+    "zone-j": [
+      { ref: "J1", type: "JST-XH-5 · left stick · col X", pins: [["1","X39","D0 → Z31","signal"],["2","X38","D1 → Y31","signal"],["3","X37","D2 → X31","signal"],["4","X36","D3 → W31","signal"],["5","X35","GND (rail)","gnd"]] },
+      { ref: "J2", type: "JST-XH-5 · right stick · col I", pins: [["1","I39","D4 → V31","signal"],["2","I38","D5 → U31","signal"],["3","I37","D6 → T31","signal"],["4","I36","D7 → S31","signal"],["5","I35","GND (rail)","gnd"]] },
+    ],
+    "zone-cb": [
+      { ref: "CB1", type: "JST-XH-4 · ARM · col Z", pins: [["1","Z47","D10 → P31","signal"],["2","Z46","GND (rail)","gnd"],["3","Z45","LED_ARM → R1.1","signal"],["4","Z44","GND (rail)","gnd"]] },
+      { ref: "CB2", type: "JST-XH-4 · EN · col U", pins: [["1","U47","D11 → O31","signal"],["2","U46","GND (rail)","gnd"],["3","U45","LED_EN → R2.1","signal"],["4","U44","GND (rail)","gnd"]] },
+      { ref: "CB3", type: "JST-XH-4 · SFT · col P (center)", pins: [["1","P47","D12 → N31","signal"],["2","P46","GND (rail)","gnd"],["3","P45","LED_SFT → R3.1","signal"],["4","P44","GND (rail)","gnd"]] },
+      { ref: "CB4", type: "JST-XH-4 · CONF · col K", pins: [["1","K47","D13 → N25","signal"],["2","K46","GND (rail)","gnd"],["3","K45","LED_CONF → R4.1","signal"],["4","K44","GND (rail)","gnd"]] },
+      { ref: "CB5", type: "JST-XH-4 · ALT · col F", pins: [["1","F47","D14 → O25","signal"],["2","F46","GND (rail)","gnd"],["3","F45","LED_ALT → R5.1","signal"],["4","F44","GND (rail)","gnd"]] },
+    ],
+    "zone-r": [
+      { ref: "R1", type: "220Ω · LED_ARM (under CB1)", pins: [["1","B49","← CB1.3","signal"],["2","X49","D8 → R31","signal"]] },
+      { ref: "R2", type: "220Ω · LED_EN (under CB2)", pins: [["1","W49","← CB2.3","signal"],["2","S49","D9 → Q31","signal"]] },
+      { ref: "R3", type: "220Ω · LED_SFT (under CB3)", pins: [["1","R49","← CB3.3","signal"],["2","N49","D36 → G25","signal"]] },
+      { ref: "R4", type: "220Ω · LED_CONF (under CB4)", pins: [["1","M49","← CB4.3","signal"],["2","I49","D37 → H25","signal"]] },
+      { ref: "R5", type: "220Ω · LED_ALT (under CB5)", pins: [["1","H49","← CB5.3","signal"],["2","D49","D38 → I25","signal"]] },
+    ],
+    "zone-np": [
+      { ref: "NP1", type: "JST-XH-8 · numpad · col B", pins: [
+        ["1","B30","D28 → H31","signal"],["2","B29","D29 → G31","signal"],["3","B28","D30 → F31","signal"],["4","B27","D31 → E31","signal"],
+        ["5","B26","D32 → D31","signal"],["6","B25","D33 → D25","signal"],["7","B24","D34 → E25","signal"],["8","B23","D35 → F25","signal"]] },
+    ],
+  };
+
+  for (const [zoneId, list] of Object.entries(connectors)) {
+    document.getElementById(zoneId).innerHTML = list.map(c => `
+      <div class="conn-card">
+        <div class="conn-head"><span class="ref">${c.ref}</span><span class="type">${c.type}</span></div>
+        <table>${c.pins.map(p => `<tr><td class="pin">${p[0]}</td><td class="gridref">${p[1]}</td><td class="dest ${p[3]}">${p[2]}</td></tr>`).join("")}</table>
+      </div>`).join("");
+  }
+</script>
+</body>
+</html>

@@ -97,3 +97,136 @@ sheet stays exactly where it was — no rewiring needed. This is what was done f
 `Conn_01x06` on 2026-08-19 (uniform −1.27mm local-Y shift in the library, compensated
 with a −1.27mm shift of each instance's `(at ...)` anchor and property positions). Verify
 with `kicad-cli sch erc` (should show 0 violations) and a rendered PDF before trusting it.
+
+## Perfboard build (2026-08-19/20 session)
+
+Built a full hand-wiring plan for the 90×150mm 32×50-hole perfboard (separate from the
+manufactured-board `.kicad_pcb`, kept untouched for eventual Gerber export via `kikit fab`
+— `kikit` 1.8.1 is installed at `/usr/local/bin/kikit`, wired to KiCad's own Python with
+real `pcbnew` bindings).
+
+**Files:**
+- `project/haptic-console-control-unit-perfboard.kicad_pcb` — the perfboard layout.
+- `renders/perfboard-3d-render.png` (tan, matches the real board), `-green.png` (FR4
+  variant), `perfboard-placement-template-1to1.pdf` (print at 100%/Actual Size).
+- `docs/wiring-guide.html` — every connection as a real board grid ref (e.g. `S1.1 → P25`).
+
+**What was done, in order:**
+1. Placed every JST/resistor as real THT footprints via `kicad-namelessdrake` MCP tools;
+   fixed several silkscreen-overlap collisions using each footprint's real body extents
+   (JST-XH-N width = 5.9+(N-1)×2.5mm; axial resistor width ≈12.26mm — don't trust pin
+   pitch alone for spacing).
+2. Female header sockets for the Teensy: `Connector_PinSocket_2.54mm:PinSocket_1x24_
+   P2.54mm_Vertical` ×2 (not the Teensy footprint itself — it's socketed, not soldered).
+   **Gotcha:** this footprint's pads run along local Y, not X — `_Vertical` in the name
+   means *mounting style* (THT pins straight down), not row orientation. Needed
+   `rotation=90` to lay the row out horizontally.
+3. Board color: added a `(stackup ...)` block (the file had none, so KiCad defaulted to
+   green FR4). Dielectric color `#9E683E` (sampled directly from the owner's board photo),
+   soldermask alpha=00 (real perfboard has no soldermask). `kicad-cli pcb render` can
+   raytrace straight to PNG — use it to verify color/DRC changes instead of guessing.
+4. Full hole grid (background `via` elements, `(free yes)(net 0)`) across the whole board
+   so the render matches a real populated perfboard, not just holes-under-components.
+   Column letters (top, repeating sequence `F E D C B A Z Y X…H G F E D C B A`, 32 of
+   them) and row numbers (right edge, 01–53) added as `gr_text` on `F.SilkS`, matching the
+   board owner's physical board printing exactly.
+5. **Major recurring bug:** the `kicad-namelessdrake` MCP server reformats the *entire*
+   file (compact single-line elements → expanded multi-line) as a side effect of any
+   `pcb_move_footprint` call. Regex-based cleanup scripts targeting the compact format
+   silently failed to match the reformatted vias/labels, leaving massive duplicate/
+   overlapping via stacks under later regenerations → rendered as "missing holes" and
+   `hole_clearance`/`holes_co_located` DRC errors. Fix: strip elements with a paren-depth
+   scanner (handles either format), and prefer direct file edits over `pcb_move_footprint`
+   once vias/labels exist in the file. Always re-verify via count after any tool-based move.
+6. Rotation math: `pcb_place_footprint`/`pcb_move_footprint`'s `rotation=90` maps local
+   `(x,y)` → world `(y,-x)` relative to the footprint origin (NOT the textbook CCW
+   `(-y,x)` — verify empirically per tool, don't assume).
+7. S1–S6 rotated vertical (one per column) so GND/SCL/SDA/+5V/+3V3 land on the same row
+   across all six — one straight bus wire per net. B1–B8/CB1–CB5/J1/J2 rotated the same
+   way per owner request; this made them much *taller* (pin-spread axis flips from X to
+   Y), which needed the whole vertical stack re-spaced with bigger gaps and the board's
+   bottom edge extended back out (row 53) to avoid new collisions — rotating connectors
+   and keeping a short board are in tension; ask before trading one for the other.
+8. Grid-reference lookup: nearest-grid mapping is `col = round(x/2.54)`, `row =
+   round(y/2.54)`, column→letter via the 32-entry sequence above. Clamp column to 1–32 —
+   un-clamped, an overflowing pin (e.g. a resistor's second pad past column 32) silently
+   collides with the wrong real column when clamped naively; better to keep all components
+   inside columns 1–32 in the first place (shift left) than to invent an "A+N" fallback.
+
+## Perfboard layout v2 (2026-08-20 session)
+
+Full re-layout to make every JST header group semi-symmetric (mirroring the physical
+panel: S1–S6 haptic drivers centered; B1–B4 mirrors B5–B8; J1 mirrors J2; CB1–CB5
+near-symmetric about the center column) **and** rail-friendly — every group shares one
+anchor row, so the same pin number lands on the same row across the whole group and one
+straight wire buses GND/+3V3/+5V/SCL/SDA down that row instead of home-running each
+connector. Details and every new grid ref are in `docs/wiring-guide.html`.
+
+**Bug hit and worked around:** `mcp__kicad-namelessdrake__pcb_move_footprint` silently
+resets rotation to 0 when the `rotation` param is omitted, despite being documented as
+"keeps current if not specified." This turned every rotated JST connector into a
+horizontal (unrotated) layout and caused massive courtyard-overlap DRC errors. Fix:
+**always pass `rotation` explicitly on every move call for a rotated footprint**, even
+when it isn't changing. Re-verify with `(at x y rot)` in the raw file after any move.
+
+**Bug hit and worked around #2:** moving a footprint to a new grid position can leave the
+background hole-grid `via` (from the "full hole grid" render trick, see below) sitting
+exactly under the new pad position → `hole_clearance`/`holes_co_located`/solder-mask-bridge
+DRC errors, while the *old* vacated position silently keeps its via (harmless, just a
+plain hole). Fix: after any repositioning pass, compute every footprint's current pad
+world positions (rotation90 JST/PinSocket: `world = (origin.x + local_y, origin.y -
+local_x)`; rotation0: `world = origin + local`), find background vias within ~0.35mm of
+any pad, and delete them with `mcp__kicad-namelessdrake__pcb_delete_vias` (batch by
+UUID). Do **not** hand-edit the `.kicad_pcb` text to strip these — use the delete-vias
+tool, per Rule #1 above.
+
+**Bug hit and worked around #3 — vacated positions need vias added back, not just
+colliding ones removed.** After repositioning a footprint, the tolerance-based via-cleanup
+in bug #2 above only handles the *new* pad position colliding with an existing via. It
+does **not** restore a hole at the *old* position the footprint vacated — that spot was
+never a background via to begin with (the old pad occupied it), so after the move it's a
+genuine gap in the "full hole grid" render — reads as a missing THT hole. Fix: after any
+repositioning pass, also recompute the *full* 32×50 grid and check every (col,row) has
+either a pad or a via within tolerance; add `pcb_add_via` (net_name `""`, size 1.5, drill
+0.8, to match the existing background vias) at any position that has neither. This session
+that meant 80 added-back vias across every vacated old S1–S6/B1/CB1/CB2/CB4/CB5/J1
+position.
+
+**No MCP tool for raw PCB graphics (`gr_text`, etc.) — used `pcbnew` directly instead.**
+Neither MCP server exposes a generic "delete PCB graphic item" call — only footprints/
+traces/vias have delete tools. The prior session's row-53 over-extension had left
+`gr_text` labels "51"/"52"/"53" on the board silkscreen with no tool-based way to remove
+them. Resolved by scripting KiCad's own bundled `pcbnew` Python module directly (`/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/3.9/bin/python3`,
+confirmed working, same engine `kikit` uses) — `pcbnew.LoadBoard()`, find-and-`Remove()`
+the three text objects by UUID, `pcbnew.SaveBoard()`. This is meaningfully different from
+Rule #1's ban on hand-editing the `.kicad_pcb` text: it goes through KiCad's real object
+model and writer instead of regex/text munging, so it can't desync pin/property data the
+way a naive script edit can. Prefer this over raw text edits whenever no MCP tool covers
+the needed operation, but re-run `kicad-cli pcb drc` and a render afterward regardless.
+**Side effect to watch for:** `pcbnew.LoadBoard()`/`SaveBoard()` on a `.kicad_pcb` that
+has no companion `.kicad_pro` auto-creates one (the perfboard file is intentionally
+project-less — just the bare `.kicad_pcb`, unlike the manufactured-board project which
+has a real `.kicad_pro`/`.kicad_sch`). Delete the auto-created `.kicad_pro` afterward if
+the board is meant to stay project-less; `kicad-cli` operates fine on the bare `.kicad_pcb`
+either way. `.kicad_prl` also gets rewritten but it's gitignored/ephemeral, harmless.
+
+**How the green FR4 render is actually made:** `kicad-cli pcb render
+--use-board-stackup-colors <value>` crashes with `bad any cast` on this KiCad 10.0.4 build
+no matter what value follows it (bare flag works but can't be turned *off*, and it's
+already on-by-default) — that flag is a dead end. The real board looks tan because
+`F.Mask`/`B.Mask` are set to `#9E683E00` (alpha 00 = fully transparent, so the tan
+dielectric underneath shows through — real boards look green from an *opaque colored
+solder mask*, not the substrate). To get the green variant: temporarily edit both mask
+`color` values in the `(stackup ...)` block (around line 31) to an opaque green, e.g.
+`#147A3CDA`, render, then edit them back to `#9E683E00` and re-render the tan version to
+confirm the revert. Verify with `kicad-cli pcb drc` after reverting. This is a narrow,
+reviewable two-line color-value edit (via the `Edit` tool, not a bulk script) — the kind
+of hand-edit Rule #1 tolerates when there's no MCP tool for board appearance, distinct
+from the bulk structural edits Rule #1 is really about.
+
+## TODO (perfboard)
+
+- **Resistor placement**: R1–R5 now sit directly under their matching CB connector's
+  column (one row below), which is better than the old "wherever there was space" layout,
+  but still worth a pass to shorten the LED-cathode jumper specifically once real wire
+  routing is being planned.
