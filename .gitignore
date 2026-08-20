@@ -30,3 +30,6 @@ fp-info-cache
 # Unzipped gerber/drill output — project/haptic-console-control-unit-gerbers.zip
 # is the tracked deliverable, this directory is regenerated from it
 project/gerbers/
+
+# schemdraw script venv (scripts/.venv) — see https://github.com/speedypleath/schemdraw-skill
+scripts/.venv/

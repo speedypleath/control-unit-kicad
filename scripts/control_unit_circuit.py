@@ -1,8 +1,12 @@
 """Haptic Console - Control Unit (M6) circuit diagram via SchemDraw (v10, final)."""
+from pathlib import Path
+
+import cairosvg
 import schemdraw
 import schemdraw.elements as elm
 
-OUT = "/Users/speedypleath/.openclaw/workspace/agents/dissertation-manager/.openclaw/tmp/schemdraw/control-unit-circuit.svg"
+DOCS = Path(__file__).resolve().parent.parent / "docs"
+OUT = str(DOCS / "control-unit-circuit.svg")
 
 with schemdraw.Drawing(file=OUT, show=False) as d:
     d.config(fontsize=9, lw=1.6, margin=3)
@@ -83,4 +87,6 @@ with schemdraw.Drawing(file=OUT, show=False) as d:
                                        fontsize=11)
 
 d.save(OUT)
-print('saved', OUT)
+png_out = str(DOCS / "control-unit-circuit.png")
+cairosvg.svg2png(url=OUT, write_to=png_out, scale=2)
+print('saved', OUT, 'and', png_out)
