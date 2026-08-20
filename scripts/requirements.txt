@@ -1,2 +1,0 @@
-schemdraw==0.23
-CairoSVG==2.9.0
