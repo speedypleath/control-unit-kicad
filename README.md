@@ -33,7 +33,7 @@ tool (JLCPCB/PCBWay/OSH Park all accept the zip directly).
 Hand-wireable 90×150mm 32×50-hole perfboard layout, same schematic/nets, laid out for
 row/column GND+3V3+5V+SDA+SCL bus wiring. Full per-connector wiring plan (every
 connection as a board grid reference, e.g. `S1.1 → Q23`), live at
-**[speedypleath.github.io/control-unit-kicad/wiring-guide.html](https://speedypleath.github.io/control-unit-kicad/wiring-guide.html)**
+**[wiring-guide](https://speedypleath.github.io/control-unit-kicad/wiring-guide.html)**
 (source: [`docs/wiring-guide.html`](docs/wiring-guide.html)). Print
 [`renders/perfboard-placement-template-1to1.pdf`](renders/perfboard-placement-template-1to1.pdf)
 at 100%/Actual Size for physical placement.
