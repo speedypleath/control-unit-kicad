@@ -131,9 +131,21 @@
     <div class="rail-grid" id="rail-grid"></div>
   </section>
 
+  <section>
+    <h2>Test points</h2>
+    <p class="section-intro">Five male 2.54mm header pins in the last column past S6 (column A &mdash; the sequence wraps back to A at the board's right edge &mdash; rows 07&ndash;11), tapping the same GND/+3V3/+5V/SDA/SCL rails S1&ndash;S6 share. Clip a jumper wire or scope hook straight onto a pin instead of back-probing a live JST connector.</p>
+    <div class="rail-grid">
+      <div class="rail-card" style="--rail-color:var(--i2c)"><div class="rail-name">TP2 &middot; SCL</div><div class="rail-taps">A07</div></div>
+      <div class="rail-card" style="--rail-color:var(--i2c)"><div class="rail-name">TP1 &middot; SDA</div><div class="rail-taps">A08</div></div>
+      <div class="rail-card" style="--rail-color:var(--power)"><div class="rail-name">TP4 &middot; +5V</div><div class="rail-taps">A09</div></div>
+      <div class="rail-card" style="--rail-color:var(--power)"><div class="rail-name">TP5 &middot; +3V3</div><div class="rail-taps">A10</div></div>
+      <div class="rail-card" style="--rail-color:var(--gnd)"><div class="rail-name">TP3 &middot; GND</div><div class="rail-taps">A11</div></div>
+    </div>
+  </section>
+
   <section class="zone">
     <h2>S1&ndash;S6 &mdash; haptic drivers (I&sup2;C)</h2>
-    <p class="section-intro">Rotated vertical, one per column, centered on the board (cols D&ndash;S1&hellip;C&ndash;S6). GND/SCL/SDA/+5V/+3V3 all fall on the same row across all six &mdash; a horizontal bus wire along that row reaches every connector.</p>
+    <p class="section-intro">Rotated vertical, one per column, centered on the board (cols D&ndash;S1&hellip;E&ndash;S6, shifted one column left of the original layout to clear the TP1&ndash;TP5 header at the right edge). GND/SCL/SDA/+5V/+3V3 all fall on the same row across all six &mdash; a horizontal bus wire along that row reaches every connector.</p>
     <div class="conn-grid" id="zone-s"></div>
   </section>
 
@@ -210,14 +222,14 @@
   renderRow("header-b", B);
 
   const rails = [
-    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 11: C11 X11 S11 N11 I11 D11 (S1&ndash;S6 pin 1) &middot; feeds Header A A23/N23" },
+    { name: "GND · S-zone", color: "var(--gnd)", taps: "Row 11: D11 Y11 T11 O11 J11 E11 (S1&ndash;S6 pin 1) &middot; feeds Header A A23/N23 &middot; also A11 (TP3)" },
     { name: "GND · B-zone", color: "var(--gnd)", taps: "Row 16: D16 Z16 V16 R16 C16 G16 K16 O16 (all of B1&ndash;B8 pin 1) &middot; feeds Header B B29" },
     { name: "GND · J-zone", color: "var(--gnd)", taps: "Row 35: X35 I35 (J1/J2 pin 5)" },
     { name: "GND · CB-zone", color: "var(--gnd)", taps: "Row 46: Z46 U46 P46 K46 F46 &middot; Row 44: Z44 U44 P44 K44 F44 (both GND pins of CB1&ndash;CB5)" },
-    { name: "+3V3", color: "var(--power)", taps: "Header A: Z23 &middot; Header B: N29 &middot; feeds S1&ndash;S6 pin 2 (row 10), R12.2 (M13), R13.2 (H13)" },
-    { name: "+5V", color: "var(--power)", taps: "Header A: B23 (VIN) &middot; feeds S1&ndash;S6 pin 3 (row 09)" },
-    { name: "SCL", color: "var(--i2c)", taps: "Header A: U23 &middot; S-zone row 07: C07 X07 S07 N07 I07 D07 &middot; R13.1 (L13)" },
-    { name: "SDA", color: "var(--i2c)", taps: "Header A: T23 &middot; S-zone row 08: C08 X08 S08 N08 I08 D08 &middot; R12.1 (Q13)" },
+    { name: "+3V3", color: "var(--power)", taps: "Header A: Z23 &middot; Header B: N29 &middot; feeds S1&ndash;S6 pin 2 (row 10), R12.2 (M13), R13.2 (H13) &middot; also A10 (TP5)" },
+    { name: "+5V", color: "var(--power)", taps: "Header A: B23 (VIN) &middot; feeds S1&ndash;S6 pin 3 (row 09) &middot; also A09 (TP4)" },
+    { name: "SCL", color: "var(--i2c)", taps: "Header A: U23 &middot; S-zone row 07: D07 Y07 T07 O07 J07 E07 &middot; R13.1 (L13) &middot; also A07 (TP2)" },
+    { name: "SDA", color: "var(--i2c)", taps: "Header A: T23 &middot; S-zone row 08: D08 Y08 T08 O08 J08 E08 &middot; R12.1 (Q13) &middot; also A08 (TP1)" },
   ];
   document.getElementById("rail-grid").innerHTML = rails.map(r => `
     <div class="rail-card" style="--rail-color:${r.color}">
@@ -227,12 +239,12 @@
 
   const connectors = {
     "zone-s": [
-      { ref: "S1", type: "JST-XH-6 · col C", pins: [["1","C11","GND → A23/N23 (rail)","gnd"],["2","C10","+3V3 → Z23 (rail)","power"],["3","C09","+5V → B23 (rail)","power"],["4","C08","SDA → T23 (rail)","i2c"],["5","C07","SCL → U23 (rail)","i2c"],["6","C06","IRQ1 → Q23","i2c"]] },
-      { ref: "S2", type: "JST-XH-6 · col X", pins: [["1","X11","GND → A23/N23 (rail)","gnd"],["2","X10","+3V3 → Z23 (rail)","power"],["3","X09","+5V → B23 (rail)","power"],["4","X08","SDA → T23 (rail)","i2c"],["5","X07","SCL → U23 (rail)","i2c"],["6","X06","IRQ2 → R23","i2c"]] },
-      { ref: "S3", type: "JST-XH-6 · col S", pins: [["1","S11","GND → A23/N23 (rail)","gnd"],["2","S10","+3V3 → Z23 (rail)","power"],["3","S09","+5V → B23 (rail)","power"],["4","S08","SDA → T23 (rail)","i2c"],["5","S07","SCL → U23 (rail)","i2c"],["6","S06","IRQ3 → S23","i2c"]] },
-      { ref: "S4", type: "JST-XH-6 · col N", pins: [["1","N11","GND → A23/N23 (rail)","gnd"],["2","N10","+3V3 → Z23 (rail)","power"],["3","N09","+5V → B23 (rail)","power"],["4","N08","SDA → T23 (rail)","i2c"],["5","N07","SCL → U23 (rail)","i2c"],["6","N06","IRQ4 → K23","i2c"]] },
-      { ref: "S5", type: "JST-XH-6 · col I", pins: [["1","I11","GND → A23/N23 (rail)","gnd"],["2","I10","+3V3 → Z23 (rail)","power"],["3","I09","+5V → B23 (rail)","power"],["4","I08","SDA → T23 (rail)","i2c"],["5","I07","SCL → U23 (rail)","i2c"],["6","I06","IRQ5 → L23","i2c"]] },
-      { ref: "S6", type: "JST-XH-6 · col D", pins: [["1","D11","GND → A23/N23 (rail)","gnd"],["2","D10","+3V3 → Z23 (rail)","power"],["3","D09","+5V → B23 (rail)","power"],["4","D08","SDA → T23 (rail)","i2c"],["5","D07","SCL → U23 (rail)","i2c"],["6","D06","IRQ6 → M23","i2c"]] },
+      { ref: "S1", type: "JST-XH-6 · col D", pins: [["1","D11","GND → A23/N23 (rail)","gnd"],["2","D10","+3V3 → Z23 (rail)","power"],["3","D09","+5V → B23 (rail)","power"],["4","D08","SDA → T23 (rail)","i2c"],["5","D07","SCL → U23 (rail)","i2c"],["6","D06","IRQ1 → Q23","i2c"]] },
+      { ref: "S2", type: "JST-XH-6 · col Y", pins: [["1","Y11","GND → A23/N23 (rail)","gnd"],["2","Y10","+3V3 → Z23 (rail)","power"],["3","Y09","+5V → B23 (rail)","power"],["4","Y08","SDA → T23 (rail)","i2c"],["5","Y07","SCL → U23 (rail)","i2c"],["6","Y06","IRQ2 → R23","i2c"]] },
+      { ref: "S3", type: "JST-XH-6 · col T", pins: [["1","T11","GND → A23/N23 (rail)","gnd"],["2","T10","+3V3 → Z23 (rail)","power"],["3","T09","+5V → B23 (rail)","power"],["4","T08","SDA → T23 (rail)","i2c"],["5","T07","SCL → U23 (rail)","i2c"],["6","T06","IRQ3 → S23","i2c"]] },
+      { ref: "S4", type: "JST-XH-6 · col O", pins: [["1","O11","GND → A23/N23 (rail)","gnd"],["2","O10","+3V3 → Z23 (rail)","power"],["3","O09","+5V → B23 (rail)","power"],["4","O08","SDA → T23 (rail)","i2c"],["5","O07","SCL → U23 (rail)","i2c"],["6","O06","IRQ4 → K23","i2c"]] },
+      { ref: "S5", type: "JST-XH-6 · col J", pins: [["1","J11","GND → A23/N23 (rail)","gnd"],["2","J10","+3V3 → Z23 (rail)","power"],["3","J09","+5V → B23 (rail)","power"],["4","J08","SDA → T23 (rail)","i2c"],["5","J07","SCL → U23 (rail)","i2c"],["6","J06","IRQ5 → L23","i2c"]] },
+      { ref: "S6", type: "JST-XH-6 · col E", pins: [["1","E11","GND → A23/N23 (rail)","gnd"],["2","E10","+3V3 → Z23 (rail)","power"],["3","E09","+5V → B23 (rail)","power"],["4","E08","SDA → T23 (rail)","i2c"],["5","E07","SCL → U23 (rail)","i2c"],["6","E06","IRQ6 → M23","i2c"]] },
     ],
     "zone-pullup": [
       { ref: "R12", type: "4.7kΩ · SDA pull-up", pins: [["1","Q13","SDA (rail)","i2c"],["2","M13","+3V3 (rail)","power"]] },

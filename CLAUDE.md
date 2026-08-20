@@ -552,3 +552,117 @@ renders (schematic, manufactured-green-3d, perfboard-green, implicitly the tan p
 too is still in `renders/` though only the green one is embedded), links the gerbers zip
 and the wiring guide, and states the v1.1 connector standard. Re-derive/update again if
 either board's layout changes materially.
+
+## Test points TP1–TP5 (2026-08-20 session 6)
+
+Owner asked for useful test points; brainstormed and got sign-off on 5: **SDA, SCL, GND,
++3V3, +5V** (no IRQ test point — owner said there's effectively no single interrupt line
+worth breaking out). Added to all three design artifacts (schematic, manufactured PCB,
+perfboard), each with its own gotchas.
+
+**Schematic** — placed `Connector:TestPoint` (1-pin, `TestPoint:TestPoint_THTPad_D1.5mm_
+Drill0.7mm` footprint) ×5 near the R12/R13 pullup network, each wired with a short local
+label (`SDA`/`SCL`/`GND`/`+3V3`/`+5V` — same-named local labels auto-join the same net
+anywhere on a KiCad sheet, no continuous wire back to the source pin needed, confirmed by
+the existing schematic's own far-apart same-name label pattern). Hit two rendering
+gotchas:
+- **`schematic_move_symbol` does not move a symbol's property text** — Reference/Value
+  `(at x y)` stay at the *original* placement coordinates even after the symbol itself
+  moves, silently drifting the visible ref/value label away from the symbol. Fix used
+  here: always `schematic_place_symbol` directly at the final intended coordinates
+  (delete-and-replace rather than place-then-move) so the tool's own default property
+  offset is computed correctly the first time.
+- **`Connector:TestPoint`'s default Reference offset (`0 -2` local) visually collides
+  with the symbol's own pin-marker circle** at rotation 0 (confirmed via cropped-PNG
+  zoom, same debugging technique as the schemdraw-diagrams skill). Rotating the symbol
+  doesn't help — this tool places Reference/Value at a fixed local offset regardless of
+  the `rotation` param. Fixed with a narrow, reviewable direct edit of just the
+  Reference property's `(at 0 y 0)` y-value (pushed to `-1.75×3.5`-ish, i.e. clearly
+  above the ~1.75mm-radius pin circle) — the same class of exception Rule #1 already
+  tolerates for PCB stackup colors: a two-line cosmetic text-position tweak, not a
+  structural pin/net edit. Verified via `kicad-cli sch erc` (0/0) and a rendered-PDF
+  crop after each attempt.
+
+**Manufactured board** — placing test points here reproduced the **exact same
+codeless-net corruption class already documented above** for `sync_schematic_to_pcb`/
+`pcb_autoroute`: `mcp__kicad-namelessdrake__pcb_place_footprint` +
+`pcb_assign_net_to_pad` silently write `(net 1 "/SDA")` (numeric-coded) onto a board
+whose entire convention is `(net "NAME")` (codeless) — `kicad-cli pcb drc` then reports
+bogus "items shorting two nets" errors because its parser can't reconcile the one coded
+pad against the rest of the codeless file. Recovered via `git show HEAD:<path> ><path>`
+(twice — first attempt's routing also collided with existing copper, see below) and
+redid it the established safe way: a direct `pcbnew` script (`FootprintLoad` from
+`TestPoint.pretty`, position, `board.FindNet(name)` + `pad.SetNet()`, `SaveBoard()`) —
+confirmed the codeless `(net "NAME")` style round-trips correctly through real `pcbnew`,
+only the MCP tool's own pad-net writer is the problem.
+
+**New technique — script a collision checker before routing into a dense board.** This
+board already has 108 nets/697+ segments fully autorouted by Freerouting; picking "empty
+looking" coordinates by eye and hand-routing a new trace into them repeatedly clipped
+existing copper (`kicad-cli pcb drc` caught: shorted nets, tracks-crossing, silk-vs-pad
+clearance). Rather than iterate blindly against the real board file, wrote a throwaway
+Python script (regex-parses `(segment ...)` blocks straight out of the `.kicad_pcb` text
+— no pcbnew/MCP dependency, so it isn't affected by the codeless-net parser bug) that
+computes segment-to-segment and point-to-segment clearance for a candidate trace path
+*and* for the new pad's own footprint-courtyard rectangle against every existing
+footprint's courtyard, before ever touching the real file. Iterated candidate `(x,y)`
+destinations against this checker until clean, *then* applied via the pcbnew script.
+This is the generalizable pattern for adding anything new to an already-fully-routed
+board on this project — much faster than the place→DRC→revert→retry loop used earlier
+in the session before the checker existed.
+- One extra silkscreen-only violation survived the copper/courtyard checks: TP5's
+  default Reference-text placement clipped both S5's and (after nudging away from S5)
+  R13's silkscreen rectangle — squeezed between the two with no clean text position in
+  either direction. Fixed by adding `(hide yes)` to just that one Reference property
+  (net-name silkscreen already identifies the point; hiding one ref designator on a
+  cramped board is standard practice, not a compromise). Final: `kicad-cli pcb drc
+  --severity-all` 0 violations.
+
+**Perfboard** — first pass placed the same `TestPoint_THTPad_D1.5mm_Drill0.7mm` flat
+pads (in the free column between S1/S2, rows 07–11) via the MCP tool (safe here since
+perfboard pads carry **no net data at all**, so the codeless/coded net-writer bug never
+triggers — confirmed no `(net ...)` field appears on the new pads, matching the board's
+existing net-free convention). Owner then asked for **real male 2.54mm header pins**
+instead (so a Dupont jumper/scope hook clips straight on, rather than needing a soldered
+wire to a flat pad) — swapped to `Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_
+Vertical` (registered nowhere new needed; it's a stock library already proven working on
+this board via the Teensy socket footprints) at the same 5 grid holes, `pcb_delete_
+footprints` + `pcb_place_footprint`, no net assignment.
+
+Owner then flagged (via a screenshot) that the header's black plastic base overlapped
+S1's silkscreen box, and asked to **shift S1–S6 one column left** instead of moving the
+test points. Since every S-connector is rotated 90° with all 6 pins on one fixed column
+(pin spread is along Y, not X — confirmed the whole "col C/X/S/N/I/D" scheme in the
+wiring guide is per-connector, one letter each), "one column left" is a uniform
+`x -= 2.54` on all six footprints, which shifts every column letter one step earlier in
+the wraparound sequence (`C→D, X→Y, S→T, N→O, I→J, D→E` — the 32-entry sequence
+`F E D C B A Z Y X…H G F E D C B A` repeats, so decrementing a column index steps
+*earlier* in the letters even though the physical X coordinate decreases). Did this,
+then (after confirming test points would still be tight against the newly-shifted S2)
+**also moved TP1–TP5 out to column 32 — the last column on the board, which wraps back
+to letter "A"** — clear of every connector instead of squeezed in a 2-connector gap.
+Both moves needed the established via-grid bookkeeping (Bug #2/#3 from the 2026-08-20
+session-3 notes above): background `(free yes)(net "")` vias at every *new* pad
+position deleted first, then the same vias re-added at every *vacated old* position, 6
+connectors × 6 rows + 5 test points × 1 row = 41 delete/add pairs total, each verified
+by `grep -c '(via'` before/after (not just trusting the tool's own return value, per the
+established rule for this MCP server). `pcb_move_footprint` calls all passed
+`rotation=90` explicitly for the S-connectors (the documented silent-rotation-reset bug)
+and `rotation=0` for the test points. Final DRC error count on this board: 196 (down
+from 201, roughly back to the 197 pre-test-point baseline) — the only test-point-related
+violations left are TP-vs-TP courtyard touches from their own tight 2.54mm pitch,
+cosmetic and consistent with this board's already-accepted hole-grid density; the actual
+TP-vs-S1/S6 collision the owner flagged is gone. Perfboard DRC as a whole remains
+out of scope per the owner's earlier "the normal one not the perfboard" instruction.
+
+`docs/wiring-guide.html` updated throughout to match: the `zone-s` per-pin grid-ref
+table (all 36 refs, one column-letter shift each), the `rails` GND/SCL/SDA tap lists
+(same shift, plus each rail's card now also lists its `A0`-row test-point tap), the new
+"Test points" section's own description (rewritten from "free column between S1 and S2"
+to "last column past S6, column A"), and the S1–S6 zone's intro sentence. `README.md`'s
+manufactured-board segment/via counts bumped (697→702 segments, 42→34 vias — the via
+drop is unrelated pre-existing state from the earlier dangling-via cleanup, not from
+this session) and both boards' embedded renders regenerated in place (tan perfboard,
+green perfboard via the same swap-color/render/revert-color pattern as prior sessions,
+green manufactured-board-3d) — same filenames, so the README's `![...]` embeds picked
+up the changes with no path edits needed.
