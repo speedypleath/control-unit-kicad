@@ -30,3 +30,12 @@ fp-info-cache
 # Unzipped gerber/drill output — project/haptic-console-control-unit-gerbers.zip
 # is the tracked deliverable, this directory is regenerated from it
 project/gerbers/
+
+# DRC/ERC reports — regenerated on demand by `kicad-cli pcb drc`
+*-drc.rpt
+*-erc.rpt
+
+# Disposable scratch board used to verify jumper-wire placement before
+# touching a real board (see docs/perfboard-wiring-regeneration.md)
+test_board.kicad_pcb
+test_board.kicad_pro

@@ -230,6 +230,8 @@ from the bulk structural edits Rule #1 is really about.
   column (one row below), which is better than the old "wherever there was space" layout,
   but still worth a pass to shorten the LED-cathode jumper specifically once real wire
   routing is being planned.
+- ~~Apply the `~/KiCad/jumper-wires-kicad` library to the real perfboard.~~ **Done
+  2026-08-21, session 3** — see the dated session note below.
 
 ## XH2.54 6-pin connector standard v1.1 adoption (2026-08-20 session 3)
 
@@ -730,3 +732,440 @@ diagram, at the cost of not matching the "one color per connector group" convent
 exactly. KiCad's own PCB/3D renderer can't do per-net wire coloring in a raytraced
 export — this is why the diagram is a separate illustrative SVG, not something pulled
 from the real board render.
+
+## Standalone `jumper-wires-kicad` library extracted (2026-08-21 session 2)
+
+The 3D-wire-model technique from the session above (custom decorative footprints + a
+centered-geometry VRML tube, non-uniform `FP_3DMODEL.m_Scale` to stretch to real
+length) was still project-scratch code at that point — a scratch generator script and
+an unfinished full-board placement attempt that had hit a real, unresolved bug: rotated
+(vertical) wire segments rendered at grossly wrong length (spanning nearly the whole
+board) while horizontal segments rendered fine. Owner asked for this to be packaged as
+a **proper, standalone, reusable KiCad library**, not left as one-off scratch scripts —
+built at `~/KiCad/jumper-wires-kicad` (separate git repo, outside this project), scoped
+to footprints + 3D models only (no schematic symbols — wires have no electrical pins),
+named by physical wire color rather than this project's net categories, so it's reusable
+in other projects.
+
+**The rotation bug turned out to already be understood and fixed** by the time this repo
+was built: the fix is centering the wire-tube geometry on its local origin (X from
+`-length/2` to `+length/2`, symmetric about `(0,0,radius)`) instead of starting at
+X=0 — an asymmetric `[0,length]` tube scales/rotates to the wrong effective length for
+anything but 0° because KiCad's non-uniform-scale pivot isn't consistent across
+rotations for asymmetric geometry. Ported `gen_wire.py` with this fix intact (see the
+library's own README for the full explanation — written so nobody "simplifies" the
+geometry back into a regression later). Verified with a throwaway scratch board: all 6
+colors placed as a mix of horizontal, vertical, and diagonal segments, rendered via
+`kicad-cli pcb render` with `JUMPER_WIRES_LIB` set in the process environment — all six
+came out the correct color, correct position, and correct length, confirming the fix
+generalizes and the earlier debugging saga in this file's prior session is resolved.
+
+**Library contents**: `3dmodels/` (6 `.wrl` tube models: red/yellow/white/orange/green/
+blue — the exact 6 colors in the physical jumper kit this was built for, no black),
+`JumperWires.pretty/` (6 static `Jumper_Wire_<Color>` footprints, no pads/copper/net,
+generated via direct `pcbnew` scripting — `FOOTPRINT()` + `FP_3DMODEL` +
+`PCB_IO_KICAD_SEXPR().FootprintSave()`, one process per footprint per the already-
+documented "5th pcbnew call breaks" workaround, not hand-written S-expression text),
+`scripts/place_wire.py` (batch placement from a `[x1,y1,x2,y2,color,label]` JSON list —
+the generalized, reusable version of the project-scratch `place_all_wires.py`).
+
+**Global registration** (affects the whole machine, not just this project — flagged
+since it's a real side effect outside this repo): added `JUMPER_WIRES_LIB` under
+`environment.vars` in `~/Library/Preferences/kicad/10.0/kicad_common.json` (was `null`,
+now points at the library repo), and a `JumperWires` row to the global
+`~/Library/Preferences/kicad/10.0/fp-lib-table` referencing
+`${JUMPER_WIRES_LIB}/JumperWires.pretty` — both were plain hand-edits (lib tables and
+JSON prefs aren't schematic/PCB files, Rule #1 doesn't apply). KiCad was running during
+the edit; it needs a full restart (not just closing the project) to pick up the new env
+var, and if KiCad's own preference-save-on-quit clobbers the hand-edit, it'll need
+redoing via **Preferences → Configure Paths** / **Manage Footprint Libraries** in the
+GUI instead.
+
+**Not done in this session** (explicitly deferred, see the new TODO bullet above): the
+real perfboard PCB was not touched. The library was verified only on a disposable
+scratch board.
+
+## `jumper-wires-kicad` pushed to GitHub + applied to the real perfboard (2026-08-21 session 3)
+
+Owner asked to push the new library to GitHub, then finish applying it to the real
+perfboard (the TODO from the session above).
+
+**GitHub**: `~/KiCad/jumper-wires-kicad` committed (single initial commit, 15 files) and
+pushed via `gh repo create speedypleath/jumper-wires-kicad --public --source=. --push` —
+public, matching this project's own repo visibility. `control-unit-kicad` itself was
+**not** committed in this session (only `CLAUDE.md` and the real perfboard `.kicad_pcb`
+changed here — left unstaged per the standing "never commit unless asked" rule).
+
+**Full wiring data source**: rather than re-deriving pin→net assignments, this session
+read the ground truth straight out of `docs/wiring-guide.html`'s own embedded JS data
+(the `connectors`, header `A`/`B` pin arrays, and the Test Points list) — that's the
+same data the existing back-side SVG diagram was generated from, and it's already fully
+correct (includes the XH2.54 v1.1 pin-order fix and the TP4/TP5 label fix from earlier
+sessions). Real pad **world coordinates** for every footprint (S1–S6, B1–B8, CB1–CB5,
+R1–R5/R12/R13, J1/J2, NP1, TP1–TP5, and both `J_TEENSY_A`/`J_TEENSY_B` header sockets)
+were pulled directly via a `pcbnew` dump script — this sidestepped needing to
+reverse-engineer the board's column-letter-to-mm encoding at all for placement purposes
+(only needed it once, to identify which of the 24 header-socket pads on each Teensy
+header corresponds to which lettered column in the guide's pin tables — verified against
+several known refs, e.g. `TP1`↔`A08`, `S1` pin1↔`D11`, before trusting it for all 48
+header pins). Result: **157 pin entries, 50 distinct nets** — matches the pin/net counts
+from the earlier (reverted) real-copper-routing attempt almost exactly, a good
+cross-check that the net map is correct.
+
+**Segment generation**: 5 true bus nets (`GND`, `+3V3`, `+5V`, `SCL`, `SDA` — the ones
+with many taps across zones) were daisy-chained by sorting all their taps by
+board position (y then x) and connecting consecutive taps with straight segments,
+matching the wiring guide's own "daisy-chain hole-to-hole, no copper trace between
+holes" soldering guidance. Every other net had exactly 2 taps (one connector pin, one
+Teensy header pin, or connector-to-connector for the CB→R LED nets) and got one direct
+point-to-point segment — real hookup wire, unlike the illustrative SVG diagram's
+Manhattan right-angle-jog style. Colors: power=red, gnd=blue, i2c=yellow (fixed by
+category), signal nets hash-assigned across white/orange/green (same approach as the
+SVG diagram, so a given net is always the same color). **Result: 107 wire segments**
+(color breakdown: blue 29, yellow 22, green 19, red 17, orange 11, white 9).
+
+**Verification, scratch copy first as usual**: placed all 107 onto a scratch copy via
+`~/KiCad/jumper-wires-kicad/scripts/place_wire.py` (footprint count 36→143, exactly
+36+107). `kicad-cli pcb drc --severity-all` came back with 409 violations — alarming at
+first glance against the "196" baseline figure documented in the test-points session
+above, until a same-flags DRC run against the **pristine, untouched** perfboard file
+also came back with exactly 409 (the 196 figure was evidently from a differently-scoped
+DRC invocation at some earlier point, not a live discrepancy). Diffed the full violation
+lists (not just counts) between pristine-baseline and scratch-with-wires: **byte-for-byte
+identical sets** — the new decorative footprints (no pads/copper/net) are structurally
+invisible to DRC, as expected. `kicad-cli pcb render` with `JUMPER_WIRES_LIB` set
+confirmed correct color/length/position across the S-zone, header, and B/CB/J zones —
+dense (107 wires on a compact board is visually busy) but with no sign of the earlier
+rotation-length bug.
+
+**Applied to the real file**, then independently re-verified from scratch rather than
+trusting `place_wire.py`'s own success message (per this project's hard-won "never trust
+a PCB write tool's return value alone on this file" rule): footprint count 36→143
+confirmed via `grep -c`, `kicad-cli pcb drc --severity-all` violation set diffed against
+the pristine baseline and found **identical** (409/409, same signatures), and a full
+`kicad-cli pcb render` visually confirmed all zones. The `pcbnew` load/save round-trip
+regenerated the stray `haptic-console-control-unit-perfboard.kicad_pro` again (the
+known recurring auto-creation bug) — deleted on sight per standing instruction, no
+`.kicad_prl` action needed (gitignored/harmless).
+
+Not committed in `control-unit-kicad` (standing rule — only `git status` shows the
+change, nothing staged).
+
+## Perfboard wiring rework: back layer + elbow routing (2026-08-21 session 4)
+
+Owner saw a render of session 3's 107-wire application and reacted: "what is this
+clutter???? also the wires should be placed on the back of the board." Investigation
+found two distinct, real bugs behind both complaints (not one root cause):
+
+1. **`~/KiCad/jumper-wires-kicad/scripts/place_wire.py` hardcoded every wire footprint
+   onto `F.Cu`** — no back-layer option existed at all, so all 107 wires were drawn
+   visually on top of every connector in the front 3D render.
+2. **56 of the 107 segments were raw diagonals** — the prior session's daisy-chain/
+   point-to-point generator connected distant taps with one straight line regardless of
+   whether they shared an X or Y, producing a starburst/crosshatch look.
+
+Asked the owner whether to fix just the layer bug or also redraw the diagonals as tidy
+routes; **owner chose the bigger rework** ("Also redraw as elbow/Manhattan routes"), not
+the minimal fix.
+
+**Fix #1 — back-layer support in `place_wire.py`**: extended the segment schema with an
+optional 7th field, `side` (`"front"`/`"back"`, default `"front"` for backward
+compatibility), calling `fp.SetLayer(pcbnew.B_Cu)` when `"back"`. **No `Flip()` call
+needed** — plain `SetLayer(B_Cu)` is sufficient for KiCad's 3D renderer to correctly
+mirror/occlude a symmetric, origin-centered tube model to the underside; confirmed on a
+throwaway scratch board with a mix of horizontal/vertical/diagonal back-side segments
+before trusting it (front render: clean, no wires visible; back render: correct color/
+position/length, no rotation-pivot regression). This fix is a real library bug fix but
+lives in the **separate, already-public** `speedypleath/jumper-wires-kicad` repo — it is
+currently only a **local, uncommitted edit there**, not pushed. Get explicit
+confirmation before committing/pushing an update to an already-public repo.
+
+**Fix #2 — elbow (Manhattan) routing**: extended the segment-generation script
+(`.../scratchpad/build_segments.py`, the same net-map logic from session 3) with an
+`emit()` helper — any segment where `x1≠x2 and y1≠y2` is split into a horizontal leg at
+the source's row then a vertical leg to the destination, instead of one diagonal. Since
+every pad sits on the perfboard's 2.54mm hole grid, elbow corners always land on a real
+hole. Result: 51 already-straight + 56×2 split = **163 wire segments** (up from 107),
+all emitted with `side="back"`.
+
+**Render camera-rotation gotcha discovered**: to view the *back* of a board with
+`kicad-cli pcb render --rotate x,y,z`, adding 180° to the **Z** component (e.g.
+`-25,0,205`, keeping the front convention's X/Y) does **not** show the back — it just
+spins around the vertical axis and still renders the front. Adding 180° to the **X**
+component instead (`155,0,25`) correctly flips to a genuine back view. Verified twice:
+once on a small scratch board (`180,0,0` vs `0,0,0`), once on the real perfboard scratch
+copy (`-25,0,205` failed, `155,0,25` succeeded).
+
+**Applied to the real file**, following the established verification discipline
+(scratch-copy-first, never trust a script's own success message alone):
+1. Removed all 107 existing wire footprints via a `pcbnew` script that identifies them
+   precisely (empty fpid, `Reference` matching `W<N>`, 3D model path containing
+   `JUMPER_WIRES_LIB`) — **not** `git checkout --`, since the file had other legitimate
+   uncommitted changes predating this session that needed to survive. 143→36 footprints,
+   confirmed 0 remaining `JUMPER_WIRES_LIB` references.
+2. Re-applied the fixed `place_wire.py` with the new 163-segment, all-back-layer JSON.
+   36→199 footprints; `grep -c '(layer "B.Cu")'` confirmed all 163 new wires landed on
+   the back.
+3. `kicad-cli pcb drc --severity-all`: 409 violations, byte-identical violation-type
+   breakdown to the pristine (no-wires) baseline — same as session 3's result, confirming
+   the decorative footprints remain DRC-invisible regardless of layer.
+4. Deleted the stray `.kicad_pro`/`.kicad_prl` the `pcbnew` round-trip regenerated.
+5. Two new renders confirm the fix: front view shows a clean board with wires hidden
+   (only stubs poking past the board edge, matching the pre-wire look) and a back view
+   (`--rotate "155,0,25"`) shows organized, color-coded, grid-following wiring with no
+   diagonal clutter. `renders/perfboard-3d-render.png` (tan) and
+   `renders/perfboard-3d-render-green.png` (green, via the established swap-dielectric-
+   color/render/revert-color technique) both regenerated in place and visually confirmed.
+
+**Incidental finding, not acted on**: an untracked `libraries/wire_models/` directory in
+this repo (old `gen_wire.py` + net-category-named `.wrl` files) is leftover pre-library
+scratch, superseded entirely by the standalone `~/KiCad/jumper-wires-kicad` repo and no
+longer referenced by anything. Flagged to the owner as removable clutter; not deleted
+without confirmation since it's tangential to this fix.
+
+Not committed in either `control-unit-kicad` (`CLAUDE.md` + perfboard `.kicad_pcb` +
+renders remain modified/unstaged) or `jumper-wires-kicad` (the `place_wire.py` fix is
+uncommitted) — both pending explicit instruction to commit/push.
+
+## Perfboard wiring: 2.54× wire-length scale bug (2026-08-21 session 5)
+
+Owner looked at a render of session 4's back-layer/elbow-routed result and said **"they
+are still overflowing"** — wires clearly extending past the board edges in multiple
+directions. Session 4's fixes (back layer, elbow routing) were real and necessary but
+did not address this — a third, separate, more fundamental bug was still present and had
+in fact affected **every wire this library has ever placed, in every prior session**:
+the "clean render" claims made in sessions 3 and 4 were visual-glance checks, not precise
+measurements, and missed a uniform oversizing.
+
+**Bug**: `~/KiCad/jumper-wires-kicad/scripts/place_wire.py` set
+`model.m_Scale = pcbnew.VECTOR3D(span, 1.0, 1.0)`, where `span` is the intended
+real-world wire length in mm. KiCad's 3D-model scale factor applies through an apparent
+legacy `0.1in = 2.54mm` unit convention on top of the model's mm-authored geometry, so
+the actual rendered length was **`span × 2.54`** — every wire rendered 2.54× too long,
+on both `F.Cu` and `B.Cu`, at every angle (confirmed layer-independent and
+rotation-independent via isolated single-wire tests on a disposable scratch board built
+directly with `pcbnew.BOARD()`/`PCB_SHAPE`, not the real file).
+
+**Diagnosis method — precise pixel measurement, not eyeballing**: rendered a known
+20mm-intended wire with `kicad-cli pcb render --side top` (true top-down, not a
+perspective `--rotate`), then used PIL/numpy to find the board's pixel bounding box by
+matching its known dielectric color, computed a px/mm calibration factor from the
+board's known real-world size, found the wire's pixel bounding box by matching its
+authored RGB (e.g. red ≈ RGB(194,59,46)), and converted to mm. This caught a bug that
+multiple prior sessions' visual-glance renders missed. First hypothesis (`span / 25.4`,
+assuming inch-native geometry) measured 1.94mm — wrong, ~10× too small. Corrected
+hypothesis (`span / 2.54`) measured 19.93mm — confirmed correct.
+
+**Fix**: `model.m_Scale = pcbnew.VECTOR3D(span / 2.54, 1.0, 1.0)`, with a comment
+explaining why (so the `/2.54` doesn't get "simplified" away later). Verified across
+layer/axis combinations on the scratch board before touching the real file: front
+horizontal 19.93mm, back horizontal 19.93mm/20.0mm, back vertical 20.0mm — all within
+~0.4% of the 20mm target.
+
+**Applied to the real file**: removed all 163 existing (oversized) wire footprints with
+the same `remove_wires.py` pattern from session 4 (fpid empty, `Reference` matching
+`W<N>`, 3D model path containing `JUMPER_WIRES_LIB`) — 199→36 footprints. Re-ran the
+fixed `place_wire.py` against the same `perfboard_segments_v2.json` from session 4
+(positions/colors/routing/back-layer unchanged — only the scale formula changed) —
+36→199 footprints again. `kicad-cli pcb drc --severity-all`: 409 violations, identical
+to the pristine baseline (as in every prior session — decorative, no net/copper).
+Deleted the stray `.kicad_pro`/`.kicad_prl` the `pcbnew` round-trip regenerated.
+
+**Verified against the real board, not just the scratch board**: rendered the real
+perfboard's back with `--side top`, pixel-measured every one of the 6 wire colors'
+bounding boxes against the board's own `Edge.Cuts` bbox (`x:[0,90] y:[-6,138]`,
+calibrated at ~6.03 px/mm from the rendered image) — **zero overflow in every color
+group**, directly confirming the symptom the owner reported is gone. Separately
+pixel-measured the single longest wire segment (a 73.66mm red `+3V3`/`+5V` daisy-chain
+leg) at 73.62mm actual — accurate to ~0.05% at full board scale, not just on a small
+scratch test.
+
+Regenerated `renders/perfboard-3d-render.png` (tan), `renders/perfboard-3d-render-green.png`
+(green, via the established swap-dielectric-color/render/revert-color technique — DRC
+and the hex-string count both reconfirmed clean after reverting), and
+`renders/perfboard-wired-back.png` (back view, `--rotate "155,0,25"`).
+
+**Lesson for this library going forward**: any future visual verification of
+`jumper-wires-kicad` output on this project should include a precise pixel-measurement
+check (as above), not a render-and-look pass alone — that's what let a 2.54× error survive
+three separate "verified" sessions.
+
+Not committed in either `control-unit-kicad` or `jumper-wires-kicad` — both pending
+explicit instruction to commit/push, per standing rule. This is now the third fix
+sitting uncommitted in `jumper-wires-kicad` (back-layer support from session 4, plus
+this scale fix).
+
+## TP4/TP5 position swap on perfboard (2026-08-21 session 6)
+
+Owner flagged that the wiring guide's "Shared bus rails" section had TP4 and TP5
+swapped. Investigation found the schematic (ground truth) had TP4=+3V3 and TP5=+5V
+(confirmed via the test-point symbol's `Value` property: `"TP_3V3"` and `"TP_5V"`), but
+the perfboard's physical footprints were swapped (TP4 at row 09/+5V bus, TP5 at row
+10/+3V3 bus). The HTML's "Test points" cards and "Shared bus rails" section already had
+the correct mapping (TP4→+3V3→A10, TP5→+5V→A09), so the doc was right — the physical
+board was wrong.
+
+**Fix**: a direct `pcbnew` script that reads both TP4 and TP5 footprints, swaps their
+`SetPosition()` calls, and saves. One process, one round-trip, no net data on this
+board (perfboard is pure hand-wiring layout, no netlist — see the "Perfboard build"
+note above). Verified after save via a re-read that TP4 now sits at `(81.28, 25.4)`
+(row 10, A10) and TP5 at `(81.28, 22.86)` (row 09, A09), matching the schematic. No
+stray `.kicad_pro`/`.kicad_prl` auto-created this time (the `pcbnew` round-trip is
+inconsistent about this — sometimes it creates them, sometimes not; always check).
+
+No via-grid bookkeeping needed (unlike the S1–S6 left-shift in the test-points session
+above) because TP4 and TP5 are decorative 1-pin header footprints with no background
+vias at either position — the full 32×50 hole-grid render (see "Perfboard build"
+above) only adds vias where there isn't already a pad, and both TP4/TP5 positions had
+pads from the start, so neither ever had a background via to collide with or restore.
+
+HTML unchanged (was already correct). Not committed in `control-unit-kicad` — pending
+explicit instruction to commit, per standing rule.
+
+## Perfboard wiring: Z-height stagger for crossing overlap (2026-08-21 session 7)
+
+Owner looked at session 4's back-layer elbow-routed render (post-scale-fix, session 5)
+and flagged that wires still visually overlap at crossings. Investigation found a real,
+distinct cause from the prior two bugs (back-layer, scale): **252 mid-span crossings**
+where two different-net wire segments cross paths (not at a shared hole) — e.g. a
+horizontal `GND` bus row crossing a vertical `IRQ`/`SDA` elbow drop. Every wire tube in
+`~/KiCad/jumper-wires-kicad` is generated with the same radius (`gen_wire.py`,
+`radius=0.4`) and is symmetric about local `z=radius` — so every wire sits at exactly
+the same height above the board. At a crossing, the two cylinders fully intersect/
+z-fight instead of one clearly passing over the other, which is the merged look the
+owner flagged. This is purely cosmetic (decorative footprints, no net/copper data — DRC
+is unaffected either way, 409 violations pristine baseline before and after).
+
+Owner chose a Z-height stagger fix (not rerouting, which can't eliminate most of the
+252 — they're inherent to the bus-row layout): give each net a tier so crossings render
+as one wire visibly passing over another.
+
+**Offset-unit convention, verified empirically before touching the real file**: the
+session-5 scale-bug fix proved `FP_3DMODEL.m_Scale` goes through an undocumented `2.54`
+legacy-unit factor on this KiCad build. `FP_3DMODEL.m_Offset` might or might not share
+that convention — assumed nothing, verified on the disposable scratch board
+(`.../scratchpad/test_board.kicad_pcb`, already built and proven in prior sessions).
+Placed a crossing horizontal+vertical wire pair with trial `m_Offset.z` values and
+rendered with `--rotate` 3D view to eyeball the separation. Result: **`m_Offset` is
+independent of the `m_Scale` /2.54 quirk** — raw offset `1.0` gives ~1mm of real Z
+lift (clean over/under separation at the crossing, no floating-off-the-board look),
+raw `4.0` clearly floats (a continuous shadow appears under the wire's whole length,
+not just its end caps). This matches KiCad's own internal-mm convention for 3D model
+offsets (separate from the legacy scale-factor convention) and was confirmed empirically
+rather than assumed. `Z_TIER_STEP = 1.0` is the per-tier lift baked into `place_wire.py`.
+
+**`place_wire.py` extension**: added an optional 8th field `z_tier` (non-negative
+integer, default `0`) to the segment schema, with
+`model.m_Offset = pcbnew.VECTOR3D(0.0, 0.0, z_tier * Z_TIER_STEP)`. Backward compatible
+— existing 6- or 7-field entries still work, defaulting to tier 0. Module docstring
+updated with the offset-unit gotcha (same pattern as the existing scale-bug comment) so
+the `Z_TIER_STEP = 1.0` value doesn't get "simplified" to something else later.
+Verified on the scratch board with a deliberate crossing H+V pair at different tiers:
+raised wire clearly passes over the flat one with no z-fighting, and pixel-measured
+the raised wire's length is still correct (a Z offset does not perturb the X-axis
+length math from the scale fix — independent axes, independent conversions).
+
+**Tier assignment rule**: tier 0 for the 5 bus nets (`GND`, `+3V3`, `+5V`, `SCL`,
+`SDA` — daisy-chained, mostly horizontal, should sit flattest since they form the
+shared rows that everything else crosses); tier 1 for every point-to-point net (the
+signal/IRQ/LED/GPIO elbow drops, mostly vertical, that cross the bus rows). Applied in
+`.../scratchpad/build_segments.py` (the same net-map script used since session 3),
+which now emits an 8th `z_tier` field per segment. Regenerated
+`perfboard_segments_v2.json` in place (same filename, same positions/colors/routing/
+back-layer as session 4+5 — only the tier field added). Result: **163 segments, 80
+tier-0 (bus), 83 tier-1 (signal)**. Same-tier crossings would still z-fight by
+construction — none exist in this set by design (every crossing is a bus×signal pair,
+which are now on different tiers), confirmed by re-running the same crossing-detection
+script from this session's investigation.
+
+**Applied to the real file**, following the established discipline (scratch-copy-first,
+never trust a script's own success message alone on this file):
+1. Removed all 163 existing wire footprints via the proven `remove_wires.py` pattern
+   (empty fpid, `Reference` matching `W<N>`, 3D model path containing
+   `JUMPER_WIRES_LIB`) — 199→36 footprints, confirmed 0 remaining
+   `JUMPER_WIRES_LIB` references.
+2. Re-applied the updated `place_wire.py` against the new tiered segment JSON.
+   36→199 footprints, confirmed via `grep -c`.
+3. `kicad-cli pcb drc --severity-all`: 409 violations, byte-identical violation-type
+   breakdown to the pristine (no-wires) baseline — same as every prior session,
+   confirming the decorative footprints remain DRC-invisible regardless of Z offset.
+4. Deleted the stray `.kicad_pro`/`.kicad_prl` the `pcbnew` round-trip regenerated
+   (the known recurring auto-creation bug, standing instruction).
+5. Three renders regenerated and visually confirmed:
+   - `renders/perfboard-3d-render.png` (tan front, `--quality high --floor`),
+   - `renders/perfboard-3d-render-green.png` (green front, via the established
+     swap-dielectric-color/render/revert-color pattern — dielectric color
+     `#9E683EFF` ↔ `#147A3CFF`, verified reverted via `grep -c` hex counts and
+     DRC unchanged at 409/0 after revert),
+   - `renders/perfboard-wired-back.png` (back view, `--side bottom` — simpler than
+     the prior session's `--rotate "155,0,25"` convention, produces the same
+     genuine back-of-board view).
+   All three show clean over/under separation at crossings — bus wires sit flat,
+   signal elbow drops pass visibly over them with no z-fighting/merging.
+
+**Still-pending carryover items, re-surfaced (not acted on without explicit
+confirmation):**
+- **Commit/push the three accumulated `jumper-wires-kicad` fixes to GitHub**: the
+  back-layer support (session 4), the `m_Scale` /2.54 length fix (session 5), and
+  this session's `m_Offset` Z-tier stagger — all three are local, uncommitted edits
+  in `~/KiCad/jumper-wires-kicad` (an already-public repo, so pushing updates needs
+  explicit sign-off per standing rule, separate from the `control-unit-kicad`
+  standing "never commit unless asked" rule).
+- **Delete untracked `libraries/wire_models/`** in this repo — old pre-library
+  scratch (`gen_wire.py` + net-category-named `.wrl` files), superseded entirely by
+  the standalone `~/KiCad/jumper-wires-kicad` repo and no longer referenced by
+  anything. Flagged as removable clutter in session 4, still sitting uncommitted;
+  not deleted without confirmation since it's tangential to the wiring work.
+
+Not committed in either `control-unit-kicad` or `jumper-wires-kicad` — both pending
+explicit instruction to commit/push, per standing rules.
+
+## Perfboard wiring: collinear-overlap elimination (2026-08-21 session 8)
+
+Owner: "try to remove overlapping from the perfboard pcb". Session 7's z-tier stagger
+fixed *crossings* but not *collinear overlaps* — two wires running along the same row or
+column with overlapping spans, which no z offset can hide (one simply lies on top of the
+other). The old 163-segment set had **55 same-tier collinear overlaps**. Rewrote the
+generator; the new 268-segment set has **zero**, verified by the same analyzer.
+
+Full method, pipeline, and the three don't-simplify-these constraints are documented in
+**`docs/perfboard-wiring-regeneration.md`**; the scripts now live in `scripts/`
+(`gen_segments_v3.py`, `verify_v3.py`, `analyze_conflicts.py`, `remove_wires.py`,
+`board_model.py`, `reconstruct_segments.py`) with their input JSONs, instead of being
+session scratch. Key points worth keeping here:
+
+- **A span registry, checked at emit time, is what makes "no overlaps" a proof rather
+  than a hope** — `(net, lo, hi, tier)` per row/col line; a leg that would overlap
+  another net at the same tier is rejected outright. Tier assignment is then a greedy
+  colouring of the net-conflict graph (7 colours here), not per-segment bumping — bumping
+  one segment's tier after the fact can silently recreate an overlap at the tier it
+  moved to.
+- **`taps.json` from the prior session was corrupt ground truth**: derived from the old
+  wire *geometry*, it included elbow corner points as taps, several of which coincidentally
+  sit on an unrelated component's pad — routing to those invents connections. Rebuilt from
+  each wire label's `REF.PIN->REF.PIN` text against real pad positions → `taps_clean.json`,
+  157 taps / 50 nets (matches the session-3 pin count exactly).
+- **Routing on pad-free lanes only cannot work on this board.** Just 4 of ~36 columns and
+  14 of ~54 rows have no pads, and they all hug the edges; that constraint left 19 of 37
+  signal nets unroutable. Legs must be allowed along pad lines as long as they don't pass
+  strictly *through* a pad.
+- **Not every pad is on the 2.54mm grid** (JST rows sit at y=15.44, grid says 15.24). Both
+  the routable-line set and the merge pass must carry exact pad coordinates; rounding
+  either one slides a wire off its own pad. This produced a subtle open-circuit bug that
+  only `verify_v3.py`'s connectivity check caught — the render looked fine.
+- **`verify_v3.py` is the new mandatory check**, alongside DRC and pixel measurement: it
+  asserts every tap lies on a wire and each net's segments form one connected component.
+  A wire set can be overlap-free, DRC-clean, in-bounds, and still be an open circuit.
+- Verified as usual scratch-copy-first: footprints 199→36→304, all 268 wires on `B.Cu`,
+  `kicad-cli pcb drc --severity-all` 409 violations with a **byte-identical violation set**
+  to the pristine baseline, pixel-measured `--side top` render showing **zero overflow in
+  every colour group**, and back-view render visually confirming clean over/under
+  separation. Stray `.kicad_pro`/`.kicad_prl` deleted. Renders regenerated:
+  `perfboard-3d-render.png` (tan), `-green.png` (via the established swap/revert, hex
+  counts and DRC reconfirmed after revert), `perfboard-wired-back.png`.
+- `docs/wire-overlap-fix-attempt.md` (the in-progress note from the interrupted attempt)
+  was deleted — superseded by `docs/perfboard-wiring-regeneration.md`.
+
+Not committed — pending explicit instruction, per standing rule. The three
+`jumper-wires-kicad` fixes (back-layer, `m_Scale` /2.54, `m_Offset` z-tier) remain
+uncommitted in that repo too; `place_wire.py` needed **no** change this session.
