@@ -94,11 +94,37 @@
   </header>
 
   <div class="legend">
-    <span class="legend-item"><span class="swatch power"></span>Power (+5V / +3V3 / VIN)</span>
-    <span class="legend-item"><span class="swatch gnd"></span>Ground</span>
-    <span class="legend-item"><span class="swatch i2c"></span>I&sup2;C bus (SCL / SDA / IRQ)</span>
-    <span class="legend-item"><span class="swatch signal"></span>Signal (per-pin GPIO)</span>
+    <span class="legend-item"><span class="swatch power"></span>Power (+5V / +3V3 / VIN) &mdash; red kit wire</span>
+    <span class="legend-item"><span class="swatch gnd"></span>Ground &mdash; blue kit wire</span>
+    <span class="legend-item"><span class="swatch i2c"></span>I&sup2;C bus (SCL / SDA / IRQ) &mdash; yellow kit wire</span>
+    <span class="legend-item"><span class="swatch signal"></span>Signal (per-pin GPIO) &mdash; white / orange / green kit wire</span>
   </div>
+
+  <section>
+    <h2>Using the jumper wire kit</h2>
+    <p class="section-intro">You're wiring this with a pre-formed solid-core jumper kit (the boxed assortment of red/yellow/white/orange/green/blue wires, fixed pre-cut lengths, ends bent square) &mdash; the standard kit sold for solderless breadboards. That matters for a few reasons specific to this board:</p>
+    <div class="callout">
+      <strong>These wires are made for solderless boards &mdash; this perfboard isn't one.</strong> The bent tip is shaped to grip a breadboard's spring clip, not to make a reliable joint on its own. It will friction-fit into a perfboard hole and feel "connected," but it isn't electrically sound until soldered. Treat every insertion as a <em>dry-fit</em>, not a finished connection:
+      <ol style="margin:0.5rem 0 0; padding-left:1.25rem;">
+        <li>Push the wire's tip through the two holes the guide calls out (component-side/top of the board), and check the fit against the grid ref before committing.</li>
+        <li>Flip the board to the copper/solder side and solder both tips to their pads. A perfboard pad is just a ring of copper around the hole &mdash; feed a little solder onto the joint so it wets the ring, not just the wire.</li>
+        <li>Clip the excess tip flush once the joint has cooled.</li>
+      </ol>
+    </div>
+    <div class="callout">
+      <strong>The kit's lengths are fixed &mdash; the "rail" runs below are not.</strong> A shared bus row (GND/+3V3/+5V/SCL/SDA, see <em>Shared bus rails</em> below) usually spans more holes than any single wire in the kit. Two options, both fine:
+      <ul style="margin:0.5rem 0 0; padding-left:1.25rem;">
+        <li>Pick the longest wire that reaches and let it bow slightly between holes &mdash; solid core holds its shape, it won't spring back.</li>
+        <li>Daisy-chain shorter wires hole-to-hole along the row: at every intermediate hole, both the incoming and outgoing wire tips land in the <em>same</em> hole and both get soldered there together with the pad. Don't skip soldering an intermediate joint just because the wire "looks continuous" &mdash; each hole is a separate solder joint, there's no copper trace linking adjacent holes on bare perfboard.</li>
+      </ul>
+    </div>
+    <div class="callout">
+      <strong>Suggested color convention</strong> (matches the legend above and the kit's actual colors): <strong style="color:var(--power)">red</strong> for every +5V/+3V3/VIN connection, <strong style="color:var(--gnd)">blue</strong> for every GND connection (the kit has no black &mdash; blue is the closest "stay off the power colors" choice and reads unambiguously once you commit to it), <strong style="color:var(--i2c)">yellow</strong> for the SCL/SDA/IRQ bus, and the remaining colors (white/orange/green) rotated per connector group for signal wires &mdash; e.g. all of B1&ndash;B8's GPIO wires one color, all of CB1&ndash;CB5's a different one &mdash; so a miswired signal is easy to spot by color alone during a continuity check. Doesn't need to be exact; consistency matters more than which color you pick.
+    </div>
+    <div class="callout">
+      <strong>Test before you solder the far end.</strong> The small compartment of premade spade/hook-tipped leads in the kit box is handy for exactly this: clip one onto a wire you've already soldered at one end and touch the other lead to the destination pad with a multimeter in continuity mode, confirming against the grid ref, before soldering the second end permanently.
+    </div>
+  </section>
 
   <div class="callout">
     <strong>Layout note (2026-08-20 revision):</strong> every JST header group now shares one anchor row per group, mirrored left/right to match the physical panel (S1&ndash;S6 haptic drivers centered; B1&ndash;B4 mirrors B5&ndash;B8; J1 mirrors J2; CB1&ndash;CB5 near-symmetric about the center column). Because each group shares an anchor row, the same pin number lands on the same row across every connector in the group &mdash; so GND (and +3V3/+5V/SCL/SDA for S1&ndash;S6) can be bussed with one straight wire along that row instead of home-running each connector separately. All content fits within the physical board's 32&times;50 hole grid (columns A&ndash;Z/A&ndash;F, rows 01&ndash;50); nothing has been placed past row 50.
