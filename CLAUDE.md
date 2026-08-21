@@ -666,3 +666,67 @@ this session) and both boards' embedded renders regenerated in place (tan perfbo
 green perfboard via the same swap-color/render/revert-color pattern as prior sessions,
 green manufactured-board-3d) — same filenames, so the README's `![...]` embeds picked
 up the changes with no path edits needed.
+
+## Perfboard wiring guide: kit-specific instructions + real routed wiring + diagram (2026-08-21)
+
+Owner uses a boxed pre-formed solid-core breadboard jumper kit (fixed lengths, bent tips,
+red/yellow/white/orange/green/blue) to hand-wire the perfboard, and asked for (1)
+kit-specific wiring instructions and (2) the wiring itself added to the PCB, ideally
+color-coded like the kit.
+
+**`docs/wiring-guide.html`** got a new "Using the jumper wire kit" section: these wires
+are shaped to grip a breadboard's spring clip, not to make a reliable joint alone — every
+insertion is a dry-fit, both tips must be soldered. A shared bus row usually exceeds any
+single kit wire's fixed length — either let the longest wire bow, or daisy-chain with a
+real solder joint at every intermediate hole (no copper trace links adjacent holes on
+bare perfboard). Suggested color convention: red=power, blue=ground (kit has no black),
+yellow=I²C bus, white/orange/green=signal.
+
+**Real electrical work on `haptic-console-control-unit-perfboard.kicad_pcb` was
+attempted, then reverted the same session.** Owner initially confirmed (via explicit
+question) they wanted actual net data + real routed copper, not just a cosmetic overlay.
+Assigned 50 real nets to 157 pads (every connector + both Teensy header sockets, refs
+`J_TEENSY_A`/`J_TEENSY_B`) via direct `pcbnew` scripting — `mcp__kicad-namelessdrake__
+pcb_read` still throws `invalid literal for int() with base 10: ''` on this file's
+codeless `(net "NAME")` pads, confirming the MCP read tools are unusable here too, not
+just the write tools. Routed via the same DSN-export → Freerouting → SES-import pipeline
+used for the manufactured board (see "Manufactured board redesign" above): 107/107 nets,
+0 unrouted, 73 DRC violations identical to the pre-existing baseline (0 new), 0
+unconnected items — independently re-verified after the fact (own `pcbnew` read +
+`kicad-cli pcb drc`, not just trusting the routing work's own report) per this file's
+established "never trust a success return alone" rule, so the routing itself was
+electrically sound. **Reverted anyway** (`git checkout -- <path>`, safe since the file
+was never committed mid-session) because the result didn't serve the actual goal: real
+copper traces render in one uniform color regardless of net in `kicad-cli pcb render`'s
+raytraced output (confirmed — this was flagged as a known limitation *before* doing the
+routing, but the owner wanted to see it and then judged the actual render against what
+they wanted), so it looked like generic PCB routing, not the color-coded jumper-wire
+picture the owner actually wanted; Freerouting also needed both F.Cu and B.Cu to route
+around the dense hole-grid vias (177/154 segments) rather than back-side-only as asked,
+which didn't help. **The board is back to its original "pure hand-wiring layout, no net
+data" design** (see 2026-08-20 session note above) — the color-coded "Back-side wiring
+diagram" SVG (below) is the actual deliverable for "wires, color-coded" on this project,
+not a `.kicad_pcb` edit. If real net data + routed copper on this board is wanted again
+later, the technique above is proven and reusable, but don't redo it by default —
+confirm the goal has changed first.
+
+**Found and fixed a real pre-existing bug while cross-checking real board coordinates
+against `docs/wiring-guide.html`'s text**: TP4 and TP5 were mislabeled — live pad
+position math (`round(y/2.54)`) showed TP4 sits on row 10 (+3V3), TP5 on row 09 (+5V),
+the reverse of what the doc said. Fixed in both the "Test points" card grid and the
+`+3V3`/`+5V` rail tap-list entries.
+
+**New "Back-side wiring diagram" section in `docs/wiring-guide.html`**: a static inline
+SVG, generated (not hand-drawn) from a Python script that reads real pad positions via
+`pcbnew` and a hardcoded ground-truth `(ref, pin) → net` map, clusters same-net pads by
+(zone, row) into local bus segments, then chains clusters top-to-bottom with simple
+Manhattan (vertical-then-horizontal) connectors — good enough for a legible reference
+diagram, not a claim of exact physical wire routing. Mirrored left/right for the
+solder-side view. Colors: power/gnd/i2c pull from the page's existing CSS theme
+variables (theme-aware); the three signal colors are fixed per net name (hash-based),
+not grouped by connector zone as the kit-color-convention text suggests — simpler to
+generate and keeps one GPIO net visually consistent everywhere it appears on the
+diagram, at the cost of not matching the "one color per connector group" convention
+exactly. KiCad's own PCB/3D renderer can't do per-net wire coloring in a raytraced
+export — this is why the diagram is a separate illustrative SVG, not something pulled
+from the real board render.
