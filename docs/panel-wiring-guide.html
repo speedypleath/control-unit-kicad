@@ -1,0 +1,304 @@
+<title>Panel Loom Wiring Guide</title>
+<style>
+  :root {
+    --bg: #f3ede2; --surface: #fffdf8; --surface-2: #ece3d3; --ink: #241c15;
+    --muted: #6b5f4f; --border: #d8cbb2; --copper: #b1662f;
+    --power: #a63b2e; --power-bg: #f6e2dd;
+    --gnd: #4a4640; --gnd-bg: #e6e2da;
+    --i2c: #8a5a17; --i2c-bg: #f1e2c4;
+    --signal: #235e78; --signal-bg: #dfeaef;
+    --shadow: 0 1px 2px rgba(36,28,21,0.06), 0 8px 24px rgba(36,28,21,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17130f; --surface: #211a14; --surface-2: #2a2119; --ink: #f1e7d7;
+      --muted: #a6957d; --border: #3c3025; --copper: #e0a868;
+      --power: #e2897b; --power-bg: #3a221e;
+      --gnd: #cfc7b8; --gnd-bg: #2c2822;
+      --i2c: #e8c37e; --i2c-bg: #3a2e15;
+      --signal: #8fc4de; --signal-bg: #1c2f37;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17130f; --surface: #211a14; --surface-2: #2a2119; --ink: #f1e7d7;
+    --muted: #a6957d; --border: #3c3025; --copper: #e0a868;
+    --power: #e2897b; --power-bg: #3a221e;
+    --gnd: #cfc7b8; --gnd-bg: #2c2822;
+    --i2c: #e8c37e; --i2c-bg: #3a2e15;
+    --signal: #8fc4de; --signal-bg: #1c2f37;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.5; padding: 0 0 6rem; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 3rem 1.5rem 0; }
+  header.page-head { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2.5rem; padding-bottom: 1.75rem; border-bottom: 3px solid var(--copper); }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--copper); }
+  h1 { font-weight: 800; font-size: clamp(2rem, 5vw, 2.7rem); margin: 0; text-wrap: balance; }
+  .dek { color: var(--muted); font-size: 1rem; max-width: 68ch; }
+  h2 { font-weight: 700; font-size: 1.4rem; margin: 0 0 0.25rem; text-wrap: balance; }
+  h3 { font-weight: 600; font-size: 1.05rem; margin: 0 0 0.5rem; }
+  section { margin-bottom: 3rem; }
+  p { max-width: 68ch; }
+  .section-intro { color: var(--muted); font-size: 0.92rem; max-width: 68ch; margin: 0 0 1.25rem; }
+  code, .mono { font-family: ui-monospace, monospace; }
+  .pin { font-family: ui-monospace, monospace; font-weight: 700; background: var(--surface-2); border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.9em; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; padding: 0.85rem 1.1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 2.5rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.5rem; font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--muted); }
+  .swatch { width: 0.65rem; height: 0.65rem; border-radius: 2px; flex: none; }
+  .swatch.power { background: var(--power); } .swatch.gnd { background: var(--gnd); }
+  .swatch.i2c { background: var(--i2c); } .swatch.signal { background: var(--signal); }
+
+  /* The unit of this guide is a cable, not a hole: device end on the left,
+     board end on the right, one row per conductor. */
+  .cable-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 0.9rem; }
+  .cable { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+  .cable-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; padding: 0.6rem 0.85rem; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .cable-head .ref { font-family: ui-monospace, monospace; font-weight: 700; font-size: 0.95rem; }
+  .cable-head .type { font-size: 0.66rem; color: var(--muted); font-family: ui-monospace, monospace; text-align: right; }
+  .cable table { width: 100%; border-collapse: collapse; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .cable td { padding: 0.4rem 0.85rem; border-top: 1px solid var(--border); vertical-align: baseline; }
+  .cable tr:first-child td { border-top: none; }
+  .cable td.n { font-family: ui-monospace, monospace; color: var(--muted); width: 1.6rem; }
+  .cable td.device { width: 45%; }
+  .cable td.net { text-align: right; font-family: ui-monospace, monospace; font-weight: 600; }
+  .cable td.net.power { color: var(--power); } .cable td.net.gnd { color: var(--gnd); }
+  .cable td.net.i2c { color: var(--i2c); } .cable td.net.signal { color: var(--signal); }
+  .cable tr.power td { background: var(--power-bg); } .cable tr.gnd td { background: var(--gnd-bg); }
+  .cable tr.i2c td { background: var(--i2c-bg); } .cable tr.signal td { background: var(--signal-bg); }
+
+  .callout { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--copper); border-radius: 8px; box-shadow: var(--shadow); padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: var(--muted); }
+  .callout strong { color: var(--ink); }
+  .callout.hazard { border-left-color: var(--power); }
+  .callout p { margin: 0 0 0.6rem; } .callout p:last-child { margin-bottom: 0; }
+
+  .table-frame { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); overflow-x: auto; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 560px; font-variant-numeric: tabular-nums; }
+  table.data th { text-align: left; font-family: ui-monospace, monospace; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0.7rem 0.9rem; background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.data td { padding: 0.5rem 0.9rem; border-top: 1px solid var(--border); }
+  table.data td.mono { font-family: ui-monospace, monospace; white-space: nowrap; }
+  table.data tr:first-child td { border-top: none; }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; max-width: 68ch; }
+  ol.steps li { counter-increment: step; position: relative; padding-left: 2.6rem; font-size: 0.92rem; }
+  ol.steps li::before { content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: 0.05rem; font-family: ui-monospace, monospace; font-size: 0.78rem; font-weight: 700; color: var(--copper); }
+  ul.plain { padding-left: 1.1rem; max-width: 68ch; font-size: 0.92rem; }
+  ul.plain li { margin-bottom: 0.4rem; }
+  footer { max-width: 980px; margin: 3rem auto 0; padding: 1.5rem 1.5rem 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; }
+  footer p { max-width: 78ch; }
+</style>
+
+<div class="wrap">
+<header class="page-head">
+  <div class="eyebrow">Haptic Console &middot; Control Unit &middot; Panel Loom</div>
+  <h1>Panel Loom Wiring Guide</h1>
+  <p class="dek">The other half of the build: what goes <em>into</em> each JST connector on the control-unit perfboard. The board wiring guide stops at the connector pads &mdash; this one starts there and runs out to the buttons, joysticks, numpad and sensor modules on the panel.</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><span class="swatch power"></span>Power (+5V / +3V3)</div>
+  <div class="legend-item"><span class="swatch gnd"></span>Ground / switch common</div>
+  <div class="legend-item"><span class="swatch i2c"></span>I&sup2;C bus (SCL / SDA / IRQ)</div>
+  <div class="legend-item"><span class="swatch signal"></span>Signal (GPIO in or LED out)</div>
+</div>
+
+<section>
+  <h2>Before you crimp anything</h2>
+  <p class="section-intro">Four conventions hold across every connector on this panel. Get these right and each individual cable below is mechanical.</p>
+
+  <div class="callout">
+    <p><strong>Every switch is wired common-to-GND.</strong> No switch on this panel gets power. One terminal goes to the connector's GND pin, the other to its signal pin. The firmware holds every input with an internal pull-up, so an open switch reads HIGH and a closed one reads LOW. Momentary NO microswitches are non-polar &mdash; which of the two terminals you use for which does not matter.</p>
+    <p><strong>Every LED is active HIGH.</strong> Anode to the connector's LED pin, cathode to its GND pin. The series resistors (R1&ndash;R5, 220&nbsp;&Omega;) are already on the board, so the LED you fit must be a <em>bare</em> LED &mdash; not a pre-wired 5V or 12V illuminated button assembly with its own internal resistor, which will not light from 3.3&nbsp;V through another 220&nbsp;&Omega;.</p>
+    <p><strong>Pin 1 is the pin listed first in the board guide's table for that connector.</strong> Don't rely on a housing marking to tell you which end is which &mdash; go back to the board wiring guide, read the grid ref for pin 1, and find that hole. Every table below numbers the board connector's pins, not the device's.</p>
+    <p><strong>Cable stock:</strong> JST-XH 2.54&nbsp;mm housings, 24&ndash;26&nbsp;AWG stranded. Stranded, not solid &mdash; these runs flex every time the panel comes off.</p>
+  </div>
+</section>
+
+<section>
+  <h2>B1&ndash;B8 &mdash; action buttons</h2>
+  <p class="section-intro">Eight plain momentary buttons, two conductors each. B1&ndash;B4 are the left cluster, B5&ndash;B8 the right. They send MIDI notes 46&ndash;53 on channel 16, in that order.</p>
+  <div class="cable-grid" id="zone-b"></div>
+</section>
+
+<section>
+  <h2>CB1&ndash;CB5 &mdash; lit control buttons</h2>
+  <p class="section-intro">Four conductors each: a switch and an LED sharing one housing, with a separate ground for each so a shorted lamp can't pull the switch line down with it. Notes 54&ndash;58 on channel 16. Each press also toggles that button's own lamp, so the panel shows mode state without the host having to drive it.</p>
+  <div class="cable-grid" id="zone-cb"></div>
+  <div class="callout hazard" style="margin-top:1.25rem">
+    <p><strong>CB4 sits on Teensy pin 13, which also drives the onboard LED.</strong> That LED and its series resistor load the pin: with only the Teensy's internal pull-up holding it up, pin 13 can settle inside the undefined input band instead of at a clean HIGH, and CB4 then reads as permanently pressed or flickers at random.</p>
+    <p>Fit an external pull-up &mdash; 470&nbsp;&Omega; to 1&nbsp;k&Omega; from pin 13 to the <span class="pin">+3V3</span> rail &mdash; before trusting CB4. The firmware's boot self-test calls this one out by name if CB4 reads closed with nothing touching it, so bring the board up once and read the serial output before reaching for the soldering iron.</p>
+  </div>
+</section>
+
+<section>
+  <h2>J1 / J2 &mdash; joysticks</h2>
+  <p class="section-intro">Four-microswitch digital sticks, not analog: a common terminal and one normally-open switch per gate direction. J1 is the left stick, J2 the right.</p>
+  <div class="cable-grid" id="zone-j"></div>
+  <div class="callout" style="margin-top:1.25rem">
+    <p><strong>The stick's own lead plugs in end-for-end.</strong> A typical 5-way arcade stick numbers its lead <span class="mono">1 common, 2 down, 3 up, 4 right, 5 left</span> &mdash; common on pin 1. The board puts GND on pin <em>5</em>. Crimping the lead reversed (its pin 1 onto board pin 5, its pin 2 onto board pin 4, and so on down) puts common on ground and lands left/right/up/down exactly on board pins 1&ndash;4, with no wires crossed inside the housing.</p>
+    <p>That is the loom this firmware assumes. If your stick numbers its lead differently, either re-crimp to match the table above or reorder <code>kJoystickPins</code> in <code>lib/TeensyPanelCore/src/TeensyPanelCore.h</code> &mdash; do not cross wires inside the housing, where nobody will find them later. Either way, push the stick in all four directions against the serial monitor before you close the panel.</p>
+  </div>
+</section>
+
+<section>
+  <h2>NP1 &mdash; numpad</h2>
+  <p class="section-intro">A 4&times;4 matrix on eight conductors and no ground at all. The firmware drives one row LOW at a time and reads the four columns with pull-ups, so the matrix supplies its own reference &mdash; there is nothing to connect to GND.</p>
+  <div class="cable-grid" id="zone-np"></div>
+  <div class="callout" style="margin-top:1.25rem">
+    <p><strong>From a 10-way membrane tail, this is a straight-through crimp.</strong> That keypad's own tail runs <span class="mono">1 unused, 2&ndash;5 columns 0&ndash;3, 6&ndash;9 rows 0&ndash;3, 10 unused</span>. Tail pin 2 goes to NP1 pin 1, tail pin 3 to NP1 pin 2, and so on to tail pin 9 on NP1 pin 8. Both unused ends are left off the housing.</p>
+    <p><strong>Ring it out in resistance mode, not continuity mode.</strong> A membrane keypad's closed contact measures somewhere between 500&nbsp;&Omega; and 10&nbsp;k&Omega; &mdash; real conduction, but far too resistive to trip most multimeters' continuity beeper. A silent meter here means "membrane", not "open circuit".</p>
+  </div>
+</section>
+
+<section>
+  <h2>S1&ndash;S6 &mdash; sensor modules</h2>
+  <p class="section-intro">Six identical slots for Pico-based I&sup2;C sensor modules, on the six-pin Haptic Console Connector Standard v1.1. Every slot is wired the same, so a module can move between slots; only the IRQ line is per-slot.</p>
+  <div class="cable-grid" id="zone-s"></div>
+  <div class="callout" style="margin-top:1.25rem">
+    <p><strong>Power the Pico from VSYS, never from 3V3.</strong> Connector pin 3 (+5V) goes to the Pico's <span class="pin">VSYS</span>; its own regulator makes the 3.3&nbsp;V. Connector pin 2 (+3V3) is a reference rail only &mdash; leave it off the Pico entirely rather than back-feeding the Pico's regulator from both sides.</p>
+    <p><strong>The bus pull-ups are already on the board.</strong> R12 and R13 (4.7&nbsp;k&Omega;) pull SDA and SCL to +3V3 at the master end. Don't add another pair on a module, and never pull either line to 5&nbsp;V &mdash; the Pico's GPIO is not 5&nbsp;V tolerant.</p>
+    <p><strong>v1.1 drops RESET and ID/ADDR</strong> from the original eight-pin standard. Nothing on this board can hard-reset a wedged module, and the Pico's ID/ADDR input (GP26) is left floating &mdash; so the <code>idAdc</code> field the Teensy prints in each packet is an unconnected-input reading, not a board identity. Read it as diagnostic noise until a board carries the resistor ladder.</p>
+  </div>
+</section>
+
+<section>
+  <h2>What the firmware does with each one</h2>
+  <p class="section-intro">Every pin below is a real net on the built board, taken from the control-unit schematic netlist. The firmware's copy of this table lives in <code>lib/TeensyPanelCore/src/TeensyPanelCore.h</code>, and a host-side test asserts the two stay in step.</p>
+  <div class="table-frame">
+    <table class="data">
+      <thead><tr><th>Connector</th><th>Teensy pin</th><th>Role</th><th>MIDI</th></tr></thead>
+      <tbody id="fw-map"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Check before first power-on</h2>
+  <div class="callout hazard">
+    <p><strong>The +5V rail is the Teensy's VIN pin.</strong> On USB power alone the whole console &mdash; Teensy, six Pico modules, every lamp &mdash; shares one 500&nbsp;mA budget, which six modules will not fit inside. If you feed an external 5&nbsp;V supply into VIN instead, cut the VUSB&ndash;VIN pads on the underside of the Teensy <em>first</em>; leaving them joined ties your bench supply to the host computer's USB rail.</p>
+    <p><strong>Nothing on this panel should be closed at rest.</strong> Ring every switch out open before the connector goes on. The firmware's boot self-test prints <span class="mono">all panel inputs open</span> when it agrees with you, and names each offender when it doesn't.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Bring-up order</h2>
+  <p class="section-intro">Plug in one family at a time. A panel that comes up all at once gives you no way to tell which loom is wrong.</p>
+  <ol class="steps">
+    <li>Power the Teensy over USB with <em>every</em> panel connector unplugged. Open the serial monitor at 115200 baud. The self-test should report <span class="mono">all panel inputs open</span>.</li>
+    <li>Plug in B1&ndash;B8. Reset, confirm the self-test is still clean, then press each button and watch for <span class="mono">B1 pressed</span> &hellip; <span class="mono">B8 released</span> in order. A button that prints the wrong number is a swapped pair, not a firmware bug.</li>
+    <li>Plug in CB1&ndash;CB5. Each press should print its legend (<span class="mono">ARM</span>, <span class="mono">EN</span>, <span class="mono">SFT</span>, <span class="mono">CONF</span>, <span class="mono">ALT</span>) and toggle that button's lamp. Watch CB4 in particular &mdash; see the pin 13 note above.</li>
+    <li>Plug in J1 and J2. Push each stick to all four gates and confirm the CC values move the way the table says: left 0, centre 64, right 127.</li>
+    <li>Plug in NP1. Every digit key should print and send its note; <span class="mono">A B C D * #</span> print but have no note mapping yet.</li>
+    <li>Plug in one sensor module, on S1. Press <span class="mono">s</span> to rescan the bus, then <span class="mono">i</span> for the per-slot IRQ report &mdash; the slot you used should be the one counting up. Add the rest one slot at a time.</li>
+  </ol>
+  <p style="margin-top:1.25rem; font-size:0.92rem; color:var(--muted)">Serial commands: <span class="mono">d</span> toggles debug output, <span class="mono">i</span> prints the IRQ report, <span class="mono">s</span> rescans the I&sup2;C bus.</p>
+</section>
+</div>
+
+<footer>
+  <p>Companion to the control-unit <strong>Wiring Guide</strong>, which covers the perfboard side of the same connectors. Every pin assignment here was taken from the schematic netlist of <code>haptic-console-control-unit.kicad_sch</code> and cross-checked against the connector placement in <code>haptic-console-control-unit-perfboard.kicad_pcb</code>. Firmware pin map: <code>lib/TeensyPanelCore/src/TeensyPanelCore.h</code> in the haptic-console-firmware repo.</p>
+</footer>
+
+<script>
+  // One row = one conductor: [board pin, what it lands on at the device end,
+  // the net it is, net class for colouring].
+  const zones = {
+    "zone-b": [1,2,3,4,5,6,7,8].map(n => ({
+      ref: "B" + n,
+      type: "JST-XH-2 &middot; " + (n <= 4 ? "left cluster" : "right cluster"),
+      pins: [
+        ["1", "Switch terminal A", "GND", "gnd"],
+        ["2", "Switch terminal B", "D" + (19 + n), "signal"],
+      ],
+    })),
+    "zone-cb": [
+      ["CB1", "ARM",  10, 8],
+      ["CB2", "EN",   11, 9],
+      ["CB3", "SFT",  12, 36],
+      ["CB4", "CONF", 13, 37],
+      ["CB5", "ALT",  14, 38],
+    ].map(([ref, name, sw, led]) => ({
+      ref: ref,
+      type: "JST-XH-4 &middot; " + name,
+      pins: [
+        ["1", "Switch terminal A", "D" + sw, "signal"],
+        ["2", "Switch terminal B", "GND", "gnd"],
+        ["3", "LED anode (+)", "D" + led + " via R", "signal"],
+        ["4", "LED cathode (&minus;)", "GND", "gnd"],
+      ],
+    })),
+    "zone-j": [["J1", "left stick", 0], ["J2", "right stick", 4]].map(([ref, name, base]) => ({
+      ref: ref,
+      type: "JST-XH-5 &middot; " + name,
+      pins: [
+        ["1", "Left switch", "D" + (base + 0), "signal"],
+        ["2", "Right switch", "D" + (base + 1), "signal"],
+        ["3", "Up switch", "D" + (base + 2), "signal"],
+        ["4", "Down switch", "D" + (base + 3), "signal"],
+        ["5", "Common (all four switches)", "GND", "gnd"],
+      ],
+    })),
+    "zone-np": [{
+      ref: "NP1",
+      type: "JST-XH-8 &middot; 4&times;4 matrix",
+      pins: [
+        ["1", "Column 0 &mdash; <span class='mono'>1 4 7 *</span>", "D28", "signal"],
+        ["2", "Column 1 &mdash; <span class='mono'>2 5 8 0</span>", "D29", "signal"],
+        ["3", "Column 2 &mdash; <span class='mono'>3 6 9 #</span>", "D30", "signal"],
+        ["4", "Column 3 &mdash; <span class='mono'>A B C D</span>", "D31", "signal"],
+        ["5", "Row 0 &mdash; <span class='mono'>1 2 3 A</span>", "D32", "signal"],
+        ["6", "Row 1 &mdash; <span class='mono'>4 5 6 B</span>", "D33", "signal"],
+        ["7", "Row 2 &mdash; <span class='mono'>7 8 9 C</span>", "D34", "signal"],
+        ["8", "Row 3 &mdash; <span class='mono'>* 0 # D</span>", "D35", "signal"],
+      ],
+    }],
+    "zone-s": [15, 16, 17, 39, 40, 41].map((irq, i) => ({
+      ref: "S" + (i + 1),
+      type: "JST-XH-6 &middot; standard v1.1",
+      pins: [
+        ["1", "Pico <span class='mono'>GND</span>", "GND", "gnd"],
+        ["2", "Leave unconnected", "+3V3", "power"],
+        ["3", "Pico <span class='mono'>VSYS</span>", "+5V", "power"],
+        ["4", "Pico <span class='mono'>GP4</span>", "SDA", "i2c"],
+        ["5", "Pico <span class='mono'>GP5</span>", "SCL", "i2c"],
+        ["6", "Pico <span class='mono'>GP6</span>", "IRQ" + (i + 1) + " &rarr; D" + irq, "i2c"],
+      ],
+    })),
+  };
+
+  for (const [id, cables] of Object.entries(zones)) {
+    document.getElementById(id).innerHTML = cables.map(c => `
+      <div class="cable">
+        <div class="cable-head"><span class="ref">${c.ref}</span><span class="type">${c.type}</span></div>
+        <table>${c.pins.map(p => `
+          <tr class="${p[3]}">
+            <td class="n">${p[0]}</td>
+            <td class="device">${p[1]}</td>
+            <td class="net ${p[3]}">${p[2]}</td>
+          </tr>`).join("")}</table>
+      </div>`).join("");
+  }
+
+  const fw = [];
+  for (let n = 1; n <= 8; n++) {
+    fw.push([`B${n}`, `D${19 + n}`, "Action button, pull-up input", `Note ${45 + n} &middot; ch 16`]);
+  }
+  [["CB1","ARM",10,8],["CB2","EN",11,9],["CB3","SFT",12,36],["CB4","CONF",13,37],["CB5","ALT",14,38]]
+    .forEach(([ref, name, sw, led], i) => {
+      fw.push([`${ref} switch`, `D${sw}`, `Control button &ldquo;${name}&rdquo;, pull-up input`, `Note ${54 + i} &middot; ch 16`]);
+      fw.push([`${ref} lamp`, `D${led}`, "LED output, latches on each press", "&mdash;"]);
+    });
+  [["J1", 0, 11, 12], ["J2", 4, 13, 14]].forEach(([ref, base, ccx, ccy]) => {
+    fw.push([`${ref} left / right`, `D${base}, D${base + 1}`, "X axis, three-state", `CC ${ccx} &middot; 0 / 64 / 127`]);
+    fw.push([`${ref} up / down`, `D${base + 2}, D${base + 3}`, "Y axis, three-state", `CC ${ccy} &middot; down 0, up 127`]);
+  });
+  fw.push(["NP1 columns", "D28&ndash;D31", "Matrix columns, pull-up inputs", "&mdash;"]);
+  fw.push(["NP1 rows", "D32&ndash;D35", "Matrix rows, driven LOW one at a time", "Notes 36&ndash;45, digits only &middot; ch 16"]);
+  fw.push(["S1&ndash;S6 bus", "D18 SDA, D19 SCL", "I&sup2;C master, 400 kHz, polled every 10 ms", "CC 1&ndash;5 &middot; ch 1"]);
+  fw.push(["S1&ndash;S6 IRQ", "D15, D16, D17, D39, D40, D41", "Data-ready in, pull-down; buys an early poll", "&mdash;"]);
+
+  document.getElementById("fw-map").innerHTML = fw.map(r =>
+    `<tr><td class="mono">${r[0]}</td><td class="mono">${r[1]}</td><td>${r[2]}</td><td class="mono">${r[3]}</td></tr>`
+  ).join("");
+</script>

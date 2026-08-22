@@ -39,3 +39,6 @@ project/gerbers/
 # touching a real board (see docs/perfboard-wiring-regeneration.md)
 test_board.kicad_pcb
 test_board.kicad_pro
+
+# Python bytecode from scripts/ and libraries/wire_models/
+__pycache__/
