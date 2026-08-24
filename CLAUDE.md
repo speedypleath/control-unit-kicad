@@ -1249,3 +1249,80 @@ counts), gerbers re-exported and re-zipped, and `renders/schematic_readable.png`
 autoscales the board but the page stays A4, so the uncropped PNG is mostly empty.
 
 Not committed — pending explicit instruction, per standing rule.
+
+## GPIO tie-break fix, docs-only re-sync (2026-08-24 session 10)
+
+Owner asked to redo the LED-button wiring in the HTML guides to the nearest digital
+pins (already correct — no change needed there, see prior session), then to commit the
+session-9 remap and move on to optimizing the joysticks. Comparing the committed
+`pin_map.json` against a fresh run of `gen_pin_map.py` against the unchanged
+`board_model.json` surfaced two real, separable problems, not one:
+
+1. **The committed file didn't match its own generator.** A fresh run reproduced the
+   same 1630.8&nbsp;mm total but a 58.5&nbsp;mm worst-case wire, not the 86.4&nbsp;mm the
+   committed file carried — i.e. the file in git predates the pass-2 bottleneck-
+   minimization sweep in its current form and was never regenerated after. (An earlier
+   hypothesis floated mid-session — that the script is non-deterministic because of
+   Python's hash-randomized set iteration over connector groups — is wrong; five
+   consecutive runs produced identical output/MD5. The discrepancy is stale committed
+   output, not run-to-run variance.)
+2. **The per-group tidy pass in `gen_pin_map.py` had a real bug**, found while looking
+   at J1: it keys "does pin order run with GPIO order" off `int(gpio_label)`, which is
+   backwards for header row A — ROW_A's physical hole order runs opposite to its GPIO
+   numbering (see the session-9 ROW_A note above). That silently preferred a physically
+   *crossing* layout for any group landing partly on ROW_A. J1 pins 3/4 (D20/D21) were
+   the concrete case: numeric order picked pin3→D20/pin4→D21, but D20 sits to the
+   physical *right* of D21, crossing the wire from pin3→pin4's neighbor. Swapping is
+   zero-cost (both orderings sum to the same 76.40&nbsp;mm), so it was pure bug, not a
+   real tradeoff.
+
+**Fix**: `scripts/gen_pin_map.py`'s tidy pass now scores tie-break order by the header
+pin's real x position (`teensy[g][0]`) instead of its GPIO number, and takes
+`min(ascending inversions, descending inversions)` since either monotonic direction
+avoids a crossing equally well. Re-running produces the same 1630.8&nbsp;mm / 58.5&nbsp;mm
+solution as the pre-fix fresh run (confirming the fix only changes tie-breaking, not the
+cost), but now also untangles J1 (and any other ROW_A-touching group) instead of leaving
+GPIO-numeric order to coincidentally cross or not.
+
+**Owner's scoping decision** (via explicit question, given the size of a full pipeline
+re-run): fix `scripts/pin_map.json` and the docs now; leave the schematic and both PCBs
+on the old assignment as an explicit TODO rather than doing the full pipeline re-run in
+the same pass.
+
+**Done**: regenerated `scripts/pin_map.json`. Counted precisely (not estimated) via a
+diff against the pre-session file: **26 of 40 signals moved**, because the pass-2
+resync (fixing problem 1) and the tie-break fix (fixing problem 2) both touch whichever
+group's degenerate-optimal choices they affect, not just the one case (J1) that
+surfaced the bug —
+
+```
+B5    D32→D31   CB4   D11→D25   J1.2  D4 →D21   J2.4  D28→D37   NP1.5 D13→D39   LED3 D25→D24
+B8    D10→D12   CB5   D37→D29   J1.3  D20→D4    NP1.2 D31→D36   NP1.6 D35→D40   LED4 D29→D28
+CB3   D8 →D11   IRQ1  D22→D23   J1.4  D21→D3    NP1.3 D34→D35   NP1.7 D40→D41   LED5 D39→D32
+IRQ2  D23→D22   IRQ4  D15→D16   J2.1  D12→D8    NP1.4 D36→D34   NP1.8 D41→D13
+                                J2.2  D24→D15    J1.1  D3 →D20                  LED2 D16→D10
+```
+
+(IRQ1/IRQ2 is a straight swap; J1's four pins permute onto the same {D3,D4,D20,D21}
+set, just uncrossed; the rest genuinely change GPIO.) Re-ran the whole perfboard-doc pipeline
+(`gen_taps.py` → `gen_segments_v3.py` → `verify_v3.py` → `gen_wiring_guide.py` →
+`gen_wiring_svg.py`) so `docs/wiring-guide.html`'s tables and inline SVG (157 pads, 227
+wires, 0 emit violations, 0 unroutable, 0 uncovered taps, 0 disconnected nets) match the
+new map; hand-updated `docs/panel-wiring-guide.html`'s `PIN` object and its D13/onboard-
+LED hazard note (moved from NP1 pin 5/row 0 to NP1 pin 8/row 3 under the new map). Added
+an explicit staleness callout to both HTML docs.
+
+**Deliberately NOT touched, per the owner's scoping**: `project/haptic-console-control-
+unit.kicad_sch`, `project/haptic-console-control-unit.kicad_pcb`,
+`project/haptic-console-control-unit-perfboard.kicad_pcb`, gerbers, and renders — all
+still reflect the session-9 (pre-tie-break-fix) assignment.
+
+**TODO**: re-run the full pipeline against the current `pin_map.json` — schematic net
+label rename (10 changed signals) via the MCP delete+re-add pattern, manufactured board
+re-net/re-route via `scripts/apply_mfg_nets.py` + the DSN/Freerouting pipeline, perfboard
+wire footprints via the `jumper-wires-kicad` `remove_wires.py`/`place_wire.py` cycle
+against the regenerated `segments_v3.json`, gerber re-export, and render regeneration —
+same procedure as session 9, scoped this time to just the ten changed signals' worth of
+actual wiring/routing difference.
+
+Not committed — pending explicit instruction, per standing rule.

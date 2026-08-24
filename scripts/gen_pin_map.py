@@ -212,6 +212,15 @@ assert assign is not None
 
 # per-group tidy: within one connector, permute its own GPIOs to run with pin
 # order. Free whenever the group's pads share a column (they all do here).
+#
+# "Run with pin order" has to be judged by the header hole's *physical* x
+# position, not its GPIO number -- ROW_A's numbering runs backwards relative
+# to where the holes actually sit (see the ROW_A gotcha at the top of this
+# file), so an inversion count keyed on int(gpio) silently prefers a
+# physically-crossing layout whenever a group's holes land in ROW_A. And
+# either monotonic direction (ascending or descending physical x) avoids a
+# crossing equally well, so score against whichever direction is cheaper
+# instead of only rewarding ascending order.
 opt = {signals[i][0]: gpios[assign[i]] for i in range(40)}
 for grp in {s[1] for s in signals}:
     if grp == "B":            # order is fixed by the monotonic constraint
@@ -228,8 +237,10 @@ for grp in {s[1] for s in signals}:
                    for i, g in zip(idx, perm))
         if cost > cur + 1e-9:
             continue
-        inv = sum(1 for a in range(len(perm)) for b in range(a + 1, len(perm))
-                  if int(perm[a][1:]) > int(perm[b][1:]))
+        xs = [teensy[g][0] for g in perm]
+        asc = sum(1 for a in range(len(xs)) for b in range(a + 1, len(xs)) if xs[a] > xs[b])
+        desc = sum(1 for a in range(len(xs)) for b in range(a + 1, len(xs)) if xs[a] < xs[b])
+        inv = min(asc, desc)
         key = (round(cost, 6), inv)
         if best is None or key < best[0]:
             best = (key, perm)

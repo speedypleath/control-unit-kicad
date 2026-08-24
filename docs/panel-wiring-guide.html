@@ -111,7 +111,7 @@
     <p><strong>Every switch is wired common-to-GND.</strong> No switch on this panel gets power. One terminal goes to the connector's GND pin, the other to its signal pin. The firmware holds every input with an internal pull-up, so an open switch reads HIGH and a closed one reads LOW. Momentary NO microswitches are non-polar &mdash; which of the two terminals you use for which does not matter.</p>
     <p><strong>Every LED is active HIGH.</strong> Anode to the connector's LED pin, cathode to its GND pin. The series resistors (R1&ndash;R5, 220&nbsp;&Omega;) are already on the board, so the LED you fit must be a <em>bare</em> LED &mdash; not a pre-wired 5V or 12V illuminated button assembly with its own internal resistor, which will not light from 3.3&nbsp;V through another 220&nbsp;&Omega;.</p>
     <p><strong>Pin 1 is the pin listed first in the board guide's table for that connector.</strong> Don't rely on a housing marking to tell you which end is which &mdash; go back to the board wiring guide, read the grid ref for pin 1, and find that hole. Every table below numbers the board connector's pins, not the device's.</p>
-    <p><strong>Pin numbers changed on 2026-08-23.</strong> Every connector signal was moved to whichever Teensy pin is physically closest to it on the board, so the assignments are no longer contiguous blocks (B1&ndash;B8 are not D20&ndash;D27 any more, the numpad is not D28&ndash;D35, and so on). Cables and connector pinouts are unchanged &mdash; only the firmware pin constants need updating. B1&ndash;B8 are the one exception to "nearest pin": they are pinned to the Teensy's D0&ndash;D12/D24&ndash;D32 header row and assigned in ascending order along the physical button row, so B1 gets the lowest number and B5 (the rightmost button) the highest, and no two button wires cross. The map below is the current one.</p>
+    <p><strong>Pin numbers changed on 2026-08-23, and again for 26 of the 40 signals on 2026-08-24.</strong> Every connector signal was moved to whichever Teensy pin is physically closest to it on the board, so the assignments are no longer contiguous blocks (B1&ndash;B8 are not D20&ndash;D27 any more, the numpad is not D28&ndash;D35, and so on). Cables and connector pinouts are unchanged &mdash; only the firmware pin constants need updating. B1&ndash;B8 are the one exception to "nearest pin": they are pinned to the Teensy's D0&ndash;D12/D24&ndash;D32 header row and assigned in ascending order along the physical button row, so B1 gets the lowest number and B5 (the rightmost button) the highest, and no two button wires cross. The 2026-08-24 pass fixed a tie-break bug that let J1's pins land on physically crossing wires, and regenerating from that fix also picked up a shorter worst-case wire everywhere else (the map had drifted from what the generator script actually produces) &mdash; between the two, IRQ1/IRQ2 (swapped), IRQ4, B5, B8, CB3&ndash;CB5, all four J1 pins, J2.1/J2.2/J2.4, NP1.2&ndash;NP1.8, and LED2&ndash;LED5 moved. The map below is the current one; <strong>the schematic and both PCBs have not been resynced to it yet</strong> (tracked as a TODO in <code>CLAUDE.md</code>).</p>
     <p><strong>Cable stock:</strong> JST-XH 2.54&nbsp;mm housings, 24&ndash;26&nbsp;AWG stranded. Stranded, not solid &mdash; these runs flex every time the panel comes off.</p>
   </div>
 </section>
@@ -144,7 +144,7 @@
   <div class="cable-grid" id="zone-np"></div>
   <div class="callout" style="margin-top:1.25rem">
     <p><strong>From a 10-way membrane tail, this is a straight-through crimp.</strong> That keypad's own tail runs <span class="mono">1 unused, 2&ndash;5 columns 0&ndash;3, 6&ndash;9 rows 0&ndash;3, 10 unused</span>. Tail pin 2 goes to NP1 pin 1, tail pin 3 to NP1 pin 2, and so on to tail pin 9 on NP1 pin 8. Both unused ends are left off the housing.</p>
-    <p><strong>NP1 pin 5 (row 0) sits on <span class="mono">D13</span>, the Teensy's onboard-LED pin.</strong> That is safe only because the matrix rows are <em>driven outputs</em> &mdash; the onboard LED and its resistor hang off D13 and would fight a pull-up input, so no input signal was allowed on that pin. The visible side effect is that the onboard LED flickers while the matrix is being scanned. Never move a column (pull-up input) onto D13.</p>
+    <p><strong>NP1 pin 8 (row 3) sits on <span class="mono">D13</span>, the Teensy's onboard-LED pin.</strong> That is safe only because the matrix rows are <em>driven outputs</em> &mdash; the onboard LED and its resistor hang off D13 and would fight a pull-up input, so no input signal was allowed on that pin. The visible side effect is that the onboard LED flickers while the matrix is being scanned. Never move a column (pull-up input) onto D13.</p>
     <p><strong>Ring it out in resistance mode, not continuity mode.</strong> A membrane keypad's closed contact measures somewhere between 500&nbsp;&Omega; and 10&nbsp;k&Omega; &mdash; real conduction, but far too resistive to trip most multimeters' continuity beeper. A silent meter here means "membrane", not "open circuit".</p>
   </div>
 </section>
@@ -187,7 +187,7 @@
     <li>Plug in B1&ndash;B8. Reset, confirm the self-test is still clean, then press each button and watch for <span class="mono">B1 pressed</span> &hellip; <span class="mono">B8 released</span> in order. A button that prints the wrong number is a swapped pair, not a firmware bug.</li>
     <li>Plug in CB1&ndash;CB5. Each press should print its legend (<span class="mono">ARM</span>, <span class="mono">EN</span>, <span class="mono">SFT</span>, <span class="mono">CONF</span>, <span class="mono">ALT</span>) and toggle that button's lamp.</li>
     <li>Plug in J1 and J2. Push each stick to all four gates and confirm the CC values move the way the table says: left 0, centre 64, right 127.</li>
-    <li>Plug in NP1. Every digit key should print and send its note; <span class="mono">A B C D * #</span> print but have no note mapping yet. Watch row 0 in particular &mdash; see the pin 13 note above.</li>
+    <li>Plug in NP1. Every digit key should print and send its note; <span class="mono">A B C D * #</span> print but have no note mapping yet. Watch row 3 in particular &mdash; see the pin 13 note above.</li>
     <li>Plug in one sensor module, on S1. Press <span class="mono">s</span> to rescan the bus, then <span class="mono">i</span> for the per-slot IRQ report &mdash; the slot you used should be the one counting up. Add the rest one slot at a time.</li>
   </ol>
   <p style="margin-top:1.25rem; font-size:0.92rem; color:var(--muted)">Serial commands: <span class="mono">d</span> toggles debug output, <span class="mono">i</span> prints the IRQ report, <span class="mono">s</span> rescans the I&sup2;C bus.</p>
@@ -203,13 +203,13 @@
   // signal sits on whichever Teensy pin is physically nearest its connector on
   // the perfboard, so these are explicit values from scripts/pin_map.json.
   const PIN = {
-    B:   ["D0", "D1", "D5", "D9", "D32", "D30", "D26", "D10"],                       // B1..B8, switch terminal B
-    CBSW: ["D2", "D6", "D8", "D11", "D37"],                    // CB1..CB5 switch
-    CBLED: ["D7", "D16", "D25", "D29", "D39"],                   // CB1..CB5 lamp, through its series resistor
-    J1:  ["D3", "D4", "D20", "D21"],                      // J1 left / right / up / down
-    J2:  ["D12", "D24", "D27", "D28"],
-    NP:  ["D14", "D31", "D34", "D36", "D13", "D35", "D40", "D41"],                      // NP1 pins 1-8: cols 0-3 then rows 0-3
-    IRQ: ["D22", "D23", "D17", "D15", "D38", "D33"],                     // S1..S6 data-ready
+    B:   ["D0", "D1", "D5", "D9", "D31", "D30", "D26", "D12"],                       // B1..B8, switch terminal B
+    CBSW: ["D2", "D6", "D11", "D25", "D29"],                    // CB1..CB5 switch
+    CBLED: ["D7", "D10", "D24", "D28", "D32"],                   // CB1..CB5 lamp, through its series resistor
+    J1:  ["D20", "D21", "D4", "D3"],                      // J1 left / right / up / down
+    J2:  ["D8", "D15", "D27", "D37"],
+    NP:  ["D14", "D36", "D35", "D34", "D39", "D40", "D41", "D13"],                      // NP1 pins 1-8: cols 0-3 then rows 0-3
+    IRQ: ["D23", "D22", "D17", "D16", "D38", "D33"],                     // S1..S6 data-ready
   };
 
   // One row = one conductor: [board pin, what it lands on at the device end,
