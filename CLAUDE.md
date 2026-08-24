@@ -1169,3 +1169,83 @@ session scratch. Key points worth keeping here:
 Not committed — pending explicit instruction, per standing rule. The three
 `jumper-wires-kicad` fixes (back-layer, `m_Scale` /2.54, `m_Offset` z-tier) remain
 uncommitted in that repo too; `place_wire.py` needed **no** change this session.
+
+## GPIO remap to nearest Teensy pin (2026-08-23 session 9)
+
+Owner: *"the wires layout is pretty messed up, please try to wire them to a pin as close
+as possible … look at the layout and wire things to the closest digital pin"*, scoped
+via follow-up question to **"Everything, keep it consistent"**. Every connector signal
+moved off its old contiguous-block GPIO assignment (B1–B8→D20–D27, NP1→D28–D35,
+CB1–5→D10–D14, J1/J2→D0–D7, LEDs→D8/D9/D36–D38, IRQ1–6→D15–D17/D39–D41) onto whichever
+Teensy pin is *physically nearest* on the perfboard.
+
+**Result**: perfboard Manhattan wire length 1772.3 → 1427.4 mm, longest single wire
+86.4 → 58.2 mm, jumper segments 268 → 203.
+
+**`scripts/pin_map.json` (from `scripts/gen_pin_map.py`) is now the single source of
+truth** for the assignment, shared by the schematic, the manufactured board's nets, and
+the perfboard wiring. Changing a pin means re-running the pipeline, not editing any
+downstream artifact by hand.
+
+**The Teensy4.1 symbol's pin *numbers* do not run in board order — derive the pin↔GPIO
+map from the pin *names*.** A verification script that assumed U1's socket rows were
+pins 1–24 then 25–48 in list order reported 18 bogus "MISMATCH"es. The truth: ROW_B is
+in order (pin 1 = GND, 2 = D0 … 24 = D32) but **ROW_A is reversed** (pin 48 = VIN,
+47 = GND, 46 = 3V3, 45 = D23 … 25 = D33). Pin names like `22_A8_CTX1` carry the GPIO
+number; parse those from `libparts` in the `generate_netlist` XML. The schematic was
+never wrong.
+
+**Schematic**: 41 net labels renamed via the MCP delete + re-add-at-identical-coordinates
+pattern (there is no rename-in-place that preserves position). 2244 lines, 141 labels,
+`kicad-cli sch erc` 0/0, and a netlist dump confirming **all 40 signals land on their
+intended U1 pin, 0 mismatches, 63 nets**.
+
+**Manufactured board**: fully re-netted and re-routed from scratch —
+`scripts/apply_mfg_nets.py` reassigns every pad from `scripts/mfg_pad_nets.json`
+(`{ref: {pad: netname}}`, dumped from the netlist) and drops all existing tracks, then
+the established DSN → Freerouting (`-host KiCad`) → SES pipeline re-routes. Final:
+35 footprints, 176 pads (163 netted; the 13 U1 USB/VBAT/PROGRAM pins stay netless),
+**628 segments, 45 vias, DRC 0 violations / 0 unconnected pads**.
+- **Strip `unconnected-(U1-…)` pseudo-nets out of the pad-net JSON first.** The netlist
+  exports one per genuinely-unconnected pin; feeding them to `apply_mfg_nets.py` creates
+  13 junk nets on the board. Caught by inspection, fixed by restoring the backup and
+  re-running with them filtered.
+
+**Perfboard**: `scripts/gen_taps.py` is new — it rebuilds `taps_clean.json` **and**
+`net_meta.json` (per-net colour, label, endpoint `REF.PIN` pair) from `pin_map.json`,
+replacing `reconstruct_segments.py` as ground truth (that script now only recovers
+segments from a board's existing wire footprints, useful for inspection).
+`gen_segments_v3.py` was patched to read `net_meta.json` instead of
+`reconstructed_segments.json`. Output: 203 segments, 6 tiers, 0 unroutable, 0 emit
+violations, 0 same-tier collinear overlaps. Applied with the usual
+`remove_wires.py` → `place_wire.py` cycle: 36 real + 203 wire footprints = 239, all 203
+on `B.Cu`.
+
+**The perfboard's pristine DRC baseline is 478, not the 409 this file records above.**
+The board itself changed in commit `89b2000` (R1–R5 moved to hole row 48). Confirmed by
+DRC-ing a wire-stripped copy. The wired board's violation set is a **byte-identical
+multiset** to that 478 baseline — compare as a multiset (parse each `[rule]` block plus
+its sorted `@(x, y)` lines into a `Counter`), not with raw `diff`: the reports list
+violations in a different order every run, so `diff` shows large spurious differences at
+identical counts.
+
+Pixel-measured the `--side bottom` render (24.1 px/mm off the tan substrate bbox):
+**zero overflow in every one of the six wire colours**.
+
+**Docs/artifacts updated**: `docs/wiring-guide.html` (header `A`/`B` arrays, every
+connector-zone destination string, regenerated inline SVG at 157 pads / 203 wires / 34
+labels, remap callout — the `rails` array needed no change since SDA/SCL kept their
+pins), `docs/panel-wiring-guide.html` (whole `<script>` block rewritten to be driven by
+an explicit `PIN` map instead of arithmetic, plus a remap callout and a note that NP1
+pin 5 now sits on `D13`, the onboard-LED pin — safe only because matrix rows are driven
+outputs; never put a pull-up column input there), `docs/perfboard-wiring-regeneration.md`
+(counts + new ground-truth section), `README.md` (new "GPIO assignment" section, board
+counts), gerbers re-exported and re-zipped, and `renders/schematic_readable.png` +
+`renders/manufactured-board-gerber-layout.png` regenerated.
+
+**Regenerating the 2D layout PNG**: `kicad-cli pcb export pdf --mode-single --layers
+"F.Cu,B.Cu,F.SilkS,F.Courtyard,Edge.Cuts" --bg-color "#000000" --scale 0`, then
+`pdftoppm -png -r 300 -singlefile`, then crop to the non-black bbox with PIL — `--scale 0`
+autoscales the board but the page stays A4, so the uncropped PNG is mostly empty.
+
+Not committed — pending explicit instruction, per standing rule.

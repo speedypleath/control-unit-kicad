@@ -111,6 +111,7 @@
     <p><strong>Every switch is wired common-to-GND.</strong> No switch on this panel gets power. One terminal goes to the connector's GND pin, the other to its signal pin. The firmware holds every input with an internal pull-up, so an open switch reads HIGH and a closed one reads LOW. Momentary NO microswitches are non-polar &mdash; which of the two terminals you use for which does not matter.</p>
     <p><strong>Every LED is active HIGH.</strong> Anode to the connector's LED pin, cathode to its GND pin. The series resistors (R1&ndash;R5, 220&nbsp;&Omega;) are already on the board, so the LED you fit must be a <em>bare</em> LED &mdash; not a pre-wired 5V or 12V illuminated button assembly with its own internal resistor, which will not light from 3.3&nbsp;V through another 220&nbsp;&Omega;.</p>
     <p><strong>Pin 1 is the pin listed first in the board guide's table for that connector.</strong> Don't rely on a housing marking to tell you which end is which &mdash; go back to the board wiring guide, read the grid ref for pin 1, and find that hole. Every table below numbers the board connector's pins, not the device's.</p>
+    <p><strong>Pin numbers changed on 2026-08-23.</strong> Every connector signal was moved to whichever Teensy pin is physically closest to it on the board, so the assignments are no longer contiguous blocks (B1&ndash;B8 are not D20&ndash;D27 any more, the numpad is not D28&ndash;D35, and so on). Cables and connector pinouts are unchanged &mdash; only the firmware pin constants need updating. B1&ndash;B8 are the one exception to "nearest pin": they are pinned to the Teensy's D0&ndash;D12/D24&ndash;D32 header row and assigned in ascending order along the physical button row, so B1 gets the lowest number and B5 (the rightmost button) the highest, and no two button wires cross. The map below is the current one.</p>
     <p><strong>Cable stock:</strong> JST-XH 2.54&nbsp;mm housings, 24&ndash;26&nbsp;AWG stranded. Stranded, not solid &mdash; these runs flex every time the panel comes off.</p>
   </div>
 </section>
@@ -125,10 +126,6 @@
   <h2>CB1&ndash;CB5 &mdash; lit control buttons</h2>
   <p class="section-intro">Four conductors each: a switch and an LED sharing one housing, with a separate ground for each so a shorted lamp can't pull the switch line down with it. Notes 54&ndash;58 on channel 16. Each press also toggles that button's own lamp, so the panel shows mode state without the host having to drive it.</p>
   <div class="cable-grid" id="zone-cb"></div>
-  <div class="callout hazard" style="margin-top:1.25rem">
-    <p><strong>CB4 sits on Teensy pin 13, which also drives the onboard LED.</strong> That LED and its series resistor load the pin: with only the Teensy's internal pull-up holding it up, pin 13 can settle inside the undefined input band instead of at a clean HIGH, and CB4 then reads as permanently pressed or flickers at random.</p>
-    <p>Fit an external pull-up &mdash; 470&nbsp;&Omega; to 1&nbsp;k&Omega; from pin 13 to the <span class="pin">+3V3</span> rail &mdash; before trusting CB4. The firmware's boot self-test calls this one out by name if CB4 reads closed with nothing touching it, so bring the board up once and read the serial output before reaching for the soldering iron.</p>
-  </div>
 </section>
 
 <section>
@@ -147,6 +144,7 @@
   <div class="cable-grid" id="zone-np"></div>
   <div class="callout" style="margin-top:1.25rem">
     <p><strong>From a 10-way membrane tail, this is a straight-through crimp.</strong> That keypad's own tail runs <span class="mono">1 unused, 2&ndash;5 columns 0&ndash;3, 6&ndash;9 rows 0&ndash;3, 10 unused</span>. Tail pin 2 goes to NP1 pin 1, tail pin 3 to NP1 pin 2, and so on to tail pin 9 on NP1 pin 8. Both unused ends are left off the housing.</p>
+    <p><strong>NP1 pin 5 (row 0) sits on <span class="mono">D13</span>, the Teensy's onboard-LED pin.</strong> That is safe only because the matrix rows are <em>driven outputs</em> &mdash; the onboard LED and its resistor hang off D13 and would fight a pull-up input, so no input signal was allowed on that pin. The visible side effect is that the onboard LED flickers while the matrix is being scanned. Never move a column (pull-up input) onto D13.</p>
     <p><strong>Ring it out in resistance mode, not continuity mode.</strong> A membrane keypad's closed contact measures somewhere between 500&nbsp;&Omega; and 10&nbsp;k&Omega; &mdash; real conduction, but far too resistive to trip most multimeters' continuity beeper. A silent meter here means "membrane", not "open circuit".</p>
   </div>
 </section>
@@ -187,9 +185,9 @@
   <ol class="steps">
     <li>Power the Teensy over USB with <em>every</em> panel connector unplugged. Open the serial monitor at 115200 baud. The self-test should report <span class="mono">all panel inputs open</span>.</li>
     <li>Plug in B1&ndash;B8. Reset, confirm the self-test is still clean, then press each button and watch for <span class="mono">B1 pressed</span> &hellip; <span class="mono">B8 released</span> in order. A button that prints the wrong number is a swapped pair, not a firmware bug.</li>
-    <li>Plug in CB1&ndash;CB5. Each press should print its legend (<span class="mono">ARM</span>, <span class="mono">EN</span>, <span class="mono">SFT</span>, <span class="mono">CONF</span>, <span class="mono">ALT</span>) and toggle that button's lamp. Watch CB4 in particular &mdash; see the pin 13 note above.</li>
+    <li>Plug in CB1&ndash;CB5. Each press should print its legend (<span class="mono">ARM</span>, <span class="mono">EN</span>, <span class="mono">SFT</span>, <span class="mono">CONF</span>, <span class="mono">ALT</span>) and toggle that button's lamp.</li>
     <li>Plug in J1 and J2. Push each stick to all four gates and confirm the CC values move the way the table says: left 0, centre 64, right 127.</li>
-    <li>Plug in NP1. Every digit key should print and send its note; <span class="mono">A B C D * #</span> print but have no note mapping yet.</li>
+    <li>Plug in NP1. Every digit key should print and send its note; <span class="mono">A B C D * #</span> print but have no note mapping yet. Watch row 0 in particular &mdash; see the pin 13 note above.</li>
     <li>Plug in one sensor module, on S1. Press <span class="mono">s</span> to rescan the bus, then <span class="mono">i</span> for the per-slot IRQ report &mdash; the slot you used should be the one counting up. Add the rest one slot at a time.</li>
   </ol>
   <p style="margin-top:1.25rem; font-size:0.92rem; color:var(--muted)">Serial commands: <span class="mono">d</span> toggles debug output, <span class="mono">i</span> prints the IRQ report, <span class="mono">s</span> rescans the I&sup2;C bus.</p>
@@ -201,6 +199,19 @@
 </footer>
 
 <script>
+  // Board pin per conductor. Not a formula: since the 2026-08-23 remap each
+  // signal sits on whichever Teensy pin is physically nearest its connector on
+  // the perfboard, so these are explicit values from scripts/pin_map.json.
+  const PIN = {
+    B:   ["D0", "D1", "D5", "D9", "D32", "D30", "D26", "D10"],                       // B1..B8, switch terminal B
+    CBSW: ["D2", "D6", "D8", "D11", "D37"],                    // CB1..CB5 switch
+    CBLED: ["D7", "D16", "D25", "D29", "D39"],                   // CB1..CB5 lamp, through its series resistor
+    J1:  ["D3", "D4", "D20", "D21"],                      // J1 left / right / up / down
+    J2:  ["D12", "D24", "D27", "D28"],
+    NP:  ["D14", "D31", "D34", "D36", "D13", "D35", "D40", "D41"],                      // NP1 pins 1-8: cols 0-3 then rows 0-3
+    IRQ: ["D22", "D23", "D17", "D15", "D38", "D33"],                     // S1..S6 data-ready
+  };
+
   // One row = one conductor: [board pin, what it lands on at the device end,
   // the net it is, net class for colouring].
   const zones = {
@@ -209,33 +220,29 @@
       type: "JST-XH-2 &middot; " + (n <= 4 ? "left cluster" : "right cluster"),
       pins: [
         ["1", "Switch terminal A", "GND", "gnd"],
-        ["2", "Switch terminal B", "D" + (19 + n), "signal"],
+        ["2", "Switch terminal B", PIN.B[n - 1], "signal"],
       ],
     })),
     "zone-cb": [
-      ["CB1", "ARM",  10, 8],
-      ["CB2", "EN",   11, 9],
-      ["CB3", "SFT",  12, 36],
-      ["CB4", "CONF", 13, 37],
-      ["CB5", "ALT",  14, 38],
-    ].map(([ref, name, sw, led]) => ({
+      ["CB1", "ARM"], ["CB2", "EN"], ["CB3", "SFT"], ["CB4", "CONF"], ["CB5", "ALT"],
+    ].map(([ref, name], i) => ({
       ref: ref,
       type: "JST-XH-4 &middot; " + name,
       pins: [
-        ["1", "Switch terminal A", "D" + sw, "signal"],
+        ["1", "Switch terminal A", PIN.CBSW[i], "signal"],
         ["2", "Switch terminal B", "GND", "gnd"],
-        ["3", "LED anode (+)", "D" + led + " via R", "signal"],
+        ["3", "LED anode (+)", PIN.CBLED[i] + " via R", "signal"],
         ["4", "LED cathode (&minus;)", "GND", "gnd"],
       ],
     })),
-    "zone-j": [["J1", "left stick", 0], ["J2", "right stick", 4]].map(([ref, name, base]) => ({
+    "zone-j": [["J1", "left stick"], ["J2", "right stick"]].map(([ref, name]) => ({
       ref: ref,
       type: "JST-XH-5 &middot; " + name,
       pins: [
-        ["1", "Left switch", "D" + (base + 0), "signal"],
-        ["2", "Right switch", "D" + (base + 1), "signal"],
-        ["3", "Up switch", "D" + (base + 2), "signal"],
-        ["4", "Down switch", "D" + (base + 3), "signal"],
+        ["1", "Left switch", PIN[ref][0], "signal"],
+        ["2", "Right switch", PIN[ref][1], "signal"],
+        ["3", "Up switch", PIN[ref][2], "signal"],
+        ["4", "Down switch", PIN[ref][3], "signal"],
         ["5", "Common (all four switches)", "GND", "gnd"],
       ],
     })),
@@ -243,17 +250,17 @@
       ref: "NP1",
       type: "JST-XH-8 &middot; 4&times;4 matrix",
       pins: [
-        ["1", "Column 0 &mdash; <span class='mono'>1 4 7 *</span>", "D28", "signal"],
-        ["2", "Column 1 &mdash; <span class='mono'>2 5 8 0</span>", "D29", "signal"],
-        ["3", "Column 2 &mdash; <span class='mono'>3 6 9 #</span>", "D30", "signal"],
-        ["4", "Column 3 &mdash; <span class='mono'>A B C D</span>", "D31", "signal"],
-        ["5", "Row 0 &mdash; <span class='mono'>1 2 3 A</span>", "D32", "signal"],
-        ["6", "Row 1 &mdash; <span class='mono'>4 5 6 B</span>", "D33", "signal"],
-        ["7", "Row 2 &mdash; <span class='mono'>7 8 9 C</span>", "D34", "signal"],
-        ["8", "Row 3 &mdash; <span class='mono'>* 0 # D</span>", "D35", "signal"],
+        ["1", "Column 0 &mdash; <span class='mono'>1 4 7 *</span>", PIN.NP[0], "signal"],
+        ["2", "Column 1 &mdash; <span class='mono'>2 5 8 0</span>", PIN.NP[1], "signal"],
+        ["3", "Column 2 &mdash; <span class='mono'>3 6 9 #</span>", PIN.NP[2], "signal"],
+        ["4", "Column 3 &mdash; <span class='mono'>A B C D</span>", PIN.NP[3], "signal"],
+        ["5", "Row 0 &mdash; <span class='mono'>1 2 3 A</span>", PIN.NP[4], "signal"],
+        ["6", "Row 1 &mdash; <span class='mono'>4 5 6 B</span>", PIN.NP[5], "signal"],
+        ["7", "Row 2 &mdash; <span class='mono'>7 8 9 C</span>", PIN.NP[6], "signal"],
+        ["8", "Row 3 &mdash; <span class='mono'>* 0 # D</span>", PIN.NP[7], "signal"],
       ],
     }],
-    "zone-s": [15, 16, 17, 39, 40, 41].map((irq, i) => ({
+    "zone-s": [0,1,2,3,4,5].map(i => ({
       ref: "S" + (i + 1),
       type: "JST-XH-6 &middot; standard v1.1",
       pins: [
@@ -262,7 +269,7 @@
         ["3", "Pico <span class='mono'>VSYS</span>", "+5V", "power"],
         ["4", "Pico <span class='mono'>GP4</span>", "SDA", "i2c"],
         ["5", "Pico <span class='mono'>GP5</span>", "SCL", "i2c"],
-        ["6", "Pico <span class='mono'>GP6</span>", "IRQ" + (i + 1) + " &rarr; D" + irq, "i2c"],
+        ["6", "Pico <span class='mono'>GP6</span>", "IRQ" + (i + 1) + " &rarr; " + PIN.IRQ[i], "i2c"],
       ],
     })),
   };
@@ -282,21 +289,21 @@
 
   const fw = [];
   for (let n = 1; n <= 8; n++) {
-    fw.push([`B${n}`, `D${19 + n}`, "Action button, pull-up input", `Note ${45 + n} &middot; ch 16`]);
+    fw.push([`B${n}`, PIN.B[n - 1], "Action button, pull-up input", `Note ${45 + n} &middot; ch 16`]);
   }
-  [["CB1","ARM",10,8],["CB2","EN",11,9],["CB3","SFT",12,36],["CB4","CONF",13,37],["CB5","ALT",14,38]]
-    .forEach(([ref, name, sw, led], i) => {
-      fw.push([`${ref} switch`, `D${sw}`, `Control button &ldquo;${name}&rdquo;, pull-up input`, `Note ${54 + i} &middot; ch 16`]);
-      fw.push([`${ref} lamp`, `D${led}`, "LED output, latches on each press", "&mdash;"]);
+  [["CB1","ARM"],["CB2","EN"],["CB3","SFT"],["CB4","CONF"],["CB5","ALT"]]
+    .forEach(([ref, name], i) => {
+      fw.push([`${ref} switch`, PIN.CBSW[i], `Control button &ldquo;${name}&rdquo;, pull-up input`, `Note ${54 + i} &middot; ch 16`]);
+      fw.push([`${ref} lamp`, PIN.CBLED[i], "LED output, latches on each press", "&mdash;"]);
     });
-  [["J1", 0, 11, 12], ["J2", 4, 13, 14]].forEach(([ref, base, ccx, ccy]) => {
-    fw.push([`${ref} left / right`, `D${base}, D${base + 1}`, "X axis, three-state", `CC ${ccx} &middot; 0 / 64 / 127`]);
-    fw.push([`${ref} up / down`, `D${base + 2}, D${base + 3}`, "Y axis, three-state", `CC ${ccy} &middot; down 0, up 127`]);
+  [["J1", 11, 12], ["J2", 13, 14]].forEach(([ref, ccx, ccy]) => {
+    fw.push([`${ref} left / right`, `${PIN[ref][0]}, ${PIN[ref][1]}`, "X axis, three-state", `CC ${ccx} &middot; 0 / 64 / 127`]);
+    fw.push([`${ref} up / down`, `${PIN[ref][2]}, ${PIN[ref][3]}`, "Y axis, three-state", `CC ${ccy} &middot; down 0, up 127`]);
   });
-  fw.push(["NP1 columns", "D28&ndash;D31", "Matrix columns, pull-up inputs", "&mdash;"]);
-  fw.push(["NP1 rows", "D32&ndash;D35", "Matrix rows, driven LOW one at a time", "Notes 36&ndash;45, digits only &middot; ch 16"]);
+  fw.push(["NP1 columns", PIN.NP.slice(0, 4).join(", "), "Matrix columns, pull-up inputs", "&mdash;"]);
+  fw.push(["NP1 rows", PIN.NP.slice(4).join(", "), "Matrix rows, driven LOW one at a time", "Notes 36&ndash;45, digits only &middot; ch 16"]);
   fw.push(["S1&ndash;S6 bus", "D18 SDA, D19 SCL", "I&sup2;C master, 400 kHz, polled every 10 ms", "CC 1&ndash;5 &middot; ch 1"]);
-  fw.push(["S1&ndash;S6 IRQ", "D15, D16, D17, D39, D40, D41", "Data-ready in, pull-down; buys an early poll", "&mdash;"]);
+  fw.push(["S1&ndash;S6 IRQ", PIN.IRQ.join(", "), "Data-ready in, pull-down; buys an early poll", "&mdash;"]);
 
   document.getElementById("fw-map").innerHTML = fw.map(r =>
     `<tr><td class="mono">${r[0]}</td><td class="mono">${r[1]}</td><td>${r[2]}</td><td class="mono">${r[3]}</td></tr>`

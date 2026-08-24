@@ -1,0 +1,402 @@
+{
+ "+3V3": {
+  "color": "red",
+  "label": "+3V3 S1.2->J_TEENSY_A.3",
+  "endpoints": [
+   "S1.2",
+   "J_TEENSY_A.3"
+  ]
+ },
+ "+5V": {
+  "color": "red",
+  "label": "+5V S1.3->J_TEENSY_A.1",
+  "endpoints": [
+   "S1.3",
+   "J_TEENSY_A.1"
+  ]
+ },
+ "D0": {
+  "color": "orange",
+  "label": "D0 B1.2->J_TEENSY_B.2",
+  "endpoints": [
+   "B1.2",
+   "J_TEENSY_B.2"
+  ]
+ },
+ "D1": {
+  "color": "orange",
+  "label": "D1 B2.2->J_TEENSY_B.3",
+  "endpoints": [
+   "B2.2",
+   "J_TEENSY_B.3"
+  ]
+ },
+ "D10": {
+  "color": "orange",
+  "label": "D10 B8.2->J_TEENSY_B.12",
+  "endpoints": [
+   "B8.2",
+   "J_TEENSY_B.12"
+  ]
+ },
+ "D11": {
+  "color": "orange",
+  "label": "D11 CB4.1->J_TEENSY_B.13",
+  "endpoints": [
+   "CB4.1",
+   "J_TEENSY_B.13"
+  ]
+ },
+ "D12": {
+  "color": "green",
+  "label": "D12 J2.1->J_TEENSY_B.14",
+  "endpoints": [
+   "J2.1",
+   "J_TEENSY_B.14"
+  ]
+ },
+ "D13": {
+  "color": "green",
+  "label": "D13 NP1.5->J_TEENSY_A.14",
+  "endpoints": [
+   "NP1.5",
+   "J_TEENSY_A.14"
+  ]
+ },
+ "D14": {
+  "color": "white",
+  "label": "D14 NP1.1->J_TEENSY_A.13",
+  "endpoints": [
+   "NP1.1",
+   "J_TEENSY_A.13"
+  ]
+ },
+ "D16": {
+  "color": "green",
+  "label": "D16 R2.2->J_TEENSY_A.11",
+  "endpoints": [
+   "R2.2",
+   "J_TEENSY_A.11"
+  ]
+ },
+ "D2": {
+  "color": "green",
+  "label": "D2 CB1.1->J_TEENSY_B.4",
+  "endpoints": [
+   "CB1.1",
+   "J_TEENSY_B.4"
+  ]
+ },
+ "D20": {
+  "color": "orange",
+  "label": "D20 J1.3->J_TEENSY_A.7",
+  "endpoints": [
+   "J1.3",
+   "J_TEENSY_A.7"
+  ]
+ },
+ "D21": {
+  "color": "orange",
+  "label": "D21 J1.4->J_TEENSY_A.6",
+  "endpoints": [
+   "J1.4",
+   "J_TEENSY_A.6"
+  ]
+ },
+ "D24": {
+  "color": "green",
+  "label": "D24 J2.2->J_TEENSY_B.16",
+  "endpoints": [
+   "J2.2",
+   "J_TEENSY_B.16"
+  ]
+ },
+ "D25": {
+  "color": "white",
+  "label": "D25 R3.2->J_TEENSY_B.17",
+  "endpoints": [
+   "R3.2",
+   "J_TEENSY_B.17"
+  ]
+ },
+ "D26": {
+  "color": "green",
+  "label": "D26 B7.2->J_TEENSY_B.18",
+  "endpoints": [
+   "B7.2",
+   "J_TEENSY_B.18"
+  ]
+ },
+ "D27": {
+  "color": "white",
+  "label": "D27 J2.3->J_TEENSY_B.19",
+  "endpoints": [
+   "J2.3",
+   "J_TEENSY_B.19"
+  ]
+ },
+ "D28": {
+  "color": "white",
+  "label": "D28 J2.4->J_TEENSY_B.20",
+  "endpoints": [
+   "J2.4",
+   "J_TEENSY_B.20"
+  ]
+ },
+ "D29": {
+  "color": "white",
+  "label": "D29 R4.2->J_TEENSY_B.21",
+  "endpoints": [
+   "R4.2",
+   "J_TEENSY_B.21"
+  ]
+ },
+ "D3": {
+  "color": "orange",
+  "label": "D3 J1.1->J_TEENSY_B.5",
+  "endpoints": [
+   "J1.1",
+   "J_TEENSY_B.5"
+  ]
+ },
+ "D30": {
+  "color": "green",
+  "label": "D30 B6.2->J_TEENSY_B.22",
+  "endpoints": [
+   "B6.2",
+   "J_TEENSY_B.22"
+  ]
+ },
+ "D31": {
+  "color": "white",
+  "label": "D31 NP1.2->J_TEENSY_B.23",
+  "endpoints": [
+   "NP1.2",
+   "J_TEENSY_B.23"
+  ]
+ },
+ "D32": {
+  "color": "orange",
+  "label": "D32 B5.2->J_TEENSY_B.24",
+  "endpoints": [
+   "B5.2",
+   "J_TEENSY_B.24"
+  ]
+ },
+ "D34": {
+  "color": "green",
+  "label": "D34 NP1.3->J_TEENSY_A.23",
+  "endpoints": [
+   "NP1.3",
+   "J_TEENSY_A.23"
+  ]
+ },
+ "D35": {
+  "color": "orange",
+  "label": "D35 NP1.6->J_TEENSY_A.22",
+  "endpoints": [
+   "NP1.6",
+   "J_TEENSY_A.22"
+  ]
+ },
+ "D36": {
+  "color": "orange",
+  "label": "D36 NP1.4->J_TEENSY_A.21",
+  "endpoints": [
+   "NP1.4",
+   "J_TEENSY_A.21"
+  ]
+ },
+ "D37": {
+  "color": "orange",
+  "label": "D37 CB5.1->J_TEENSY_A.20",
+  "endpoints": [
+   "CB5.1",
+   "J_TEENSY_A.20"
+  ]
+ },
+ "D39": {
+  "color": "white",
+  "label": "D39 R5.2->J_TEENSY_A.18",
+  "endpoints": [
+   "R5.2",
+   "J_TEENSY_A.18"
+  ]
+ },
+ "D4": {
+  "color": "green",
+  "label": "D4 J1.2->J_TEENSY_B.6",
+  "endpoints": [
+   "J1.2",
+   "J_TEENSY_B.6"
+  ]
+ },
+ "D40": {
+  "color": "orange",
+  "label": "D40 NP1.7->J_TEENSY_A.17",
+  "endpoints": [
+   "NP1.7",
+   "J_TEENSY_A.17"
+  ]
+ },
+ "D41": {
+  "color": "green",
+  "label": "D41 NP1.8->J_TEENSY_A.16",
+  "endpoints": [
+   "NP1.8",
+   "J_TEENSY_A.16"
+  ]
+ },
+ "D5": {
+  "color": "orange",
+  "label": "D5 B3.2->J_TEENSY_B.7",
+  "endpoints": [
+   "B3.2",
+   "J_TEENSY_B.7"
+  ]
+ },
+ "D6": {
+  "color": "orange",
+  "label": "D6 CB2.1->J_TEENSY_B.8",
+  "endpoints": [
+   "CB2.1",
+   "J_TEENSY_B.8"
+  ]
+ },
+ "D7": {
+  "color": "orange",
+  "label": "D7 R1.2->J_TEENSY_B.9",
+  "endpoints": [
+   "R1.2",
+   "J_TEENSY_B.9"
+  ]
+ },
+ "D8": {
+  "color": "white",
+  "label": "D8 CB3.1->J_TEENSY_B.10",
+  "endpoints": [
+   "CB3.1",
+   "J_TEENSY_B.10"
+  ]
+ },
+ "D9": {
+  "color": "orange",
+  "label": "D9 B4.2->J_TEENSY_B.11",
+  "endpoints": [
+   "B4.2",
+   "J_TEENSY_B.11"
+  ]
+ },
+ "GND": {
+  "color": "blue",
+  "label": "GND S1.1->B1.1",
+  "endpoints": [
+   "S1.1",
+   "B1.1"
+  ]
+ },
+ "IRQ1": {
+  "color": "yellow",
+  "label": "IRQ1 S1.6->J_TEENSY_A.5",
+  "endpoints": [
+   "S1.6",
+   "J_TEENSY_A.5"
+  ]
+ },
+ "IRQ2": {
+  "color": "yellow",
+  "label": "IRQ2 S2.6->J_TEENSY_A.4",
+  "endpoints": [
+   "S2.6",
+   "J_TEENSY_A.4"
+  ]
+ },
+ "IRQ3": {
+  "color": "yellow",
+  "label": "IRQ3 S3.6->J_TEENSY_A.10",
+  "endpoints": [
+   "S3.6",
+   "J_TEENSY_A.10"
+  ]
+ },
+ "IRQ4": {
+  "color": "yellow",
+  "label": "IRQ4 S4.6->J_TEENSY_A.12",
+  "endpoints": [
+   "S4.6",
+   "J_TEENSY_A.12"
+  ]
+ },
+ "IRQ5": {
+  "color": "yellow",
+  "label": "IRQ5 S5.6->J_TEENSY_A.19",
+  "endpoints": [
+   "S5.6",
+   "J_TEENSY_A.19"
+  ]
+ },
+ "IRQ6": {
+  "color": "yellow",
+  "label": "IRQ6 S6.6->J_TEENSY_A.24",
+  "endpoints": [
+   "S6.6",
+   "J_TEENSY_A.24"
+  ]
+ },
+ "LED_ALT": {
+  "color": "white",
+  "label": "LED_ALT CB5.3->R5.1",
+  "endpoints": [
+   "CB5.3",
+   "R5.1"
+  ]
+ },
+ "LED_ARM": {
+  "color": "orange",
+  "label": "LED_ARM CB1.3->R1.1",
+  "endpoints": [
+   "CB1.3",
+   "R1.1"
+  ]
+ },
+ "LED_CONF": {
+  "color": "green",
+  "label": "LED_CONF CB4.3->R4.1",
+  "endpoints": [
+   "CB4.3",
+   "R4.1"
+  ]
+ },
+ "LED_EN": {
+  "color": "white",
+  "label": "LED_EN CB2.3->R2.1",
+  "endpoints": [
+   "CB2.3",
+   "R2.1"
+  ]
+ },
+ "LED_SFT": {
+  "color": "orange",
+  "label": "LED_SFT CB3.3->R3.1",
+  "endpoints": [
+   "CB3.3",
+   "R3.1"
+  ]
+ },
+ "SCL": {
+  "color": "yellow",
+  "label": "SCL S1.5->S2.5",
+  "endpoints": [
+   "S1.5",
+   "S2.5"
+  ]
+ },
+ "SDA": {
+  "color": "yellow",
+  "label": "SDA S1.4->S2.4",
+  "endpoints": [
+   "S1.4",
+   "S2.4"
+  ]
+ }
+}

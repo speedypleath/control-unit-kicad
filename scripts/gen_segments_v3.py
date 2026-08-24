@@ -1,6 +1,6 @@
 """Regenerate the perfboard's jumper wiring with no visible wire overlaps.
 
-Inputs (cwd):  taps_clean.json, board_model.json, reconstructed_segments.json.
+Inputs (cwd):  taps_clean.json, board_model.json, net_meta.json.
 Output:        segments_v3.json (place_wire.py 8-field schema), all on the back.
 
 The wires are decorative footprints from ~/KiCad/jumper-wires-kicad -- no pads, no
@@ -46,7 +46,7 @@ EPS = 0.05
 # 50 nets), which is the actual ground truth.
 taps = json.load(open("taps_clean.json"))
 model = json.load(open("board_model.json"))
-segs_old = json.load(open("reconstructed_segments.json"))
+meta = json.load(open("net_meta.json"))
 
 pads = {}
 for p in model["pads"]:
@@ -54,26 +54,20 @@ for p in model["pads"]:
 pad_by_refpin = {(r, p): (x, y) for (x, y), (r, p) in pads.items()}
 pad_list = list(pads.keys())
 
-def net_of(s): return s[5].split()[0]
-
-net_color, net_label, net_endpoints = {}, {}, {}
-for s in segs_old:
-    n = net_of(s)
-    net_color[n] = s[4]
-    base = s[5].rsplit(" (", 1)[0]
-    net_label[n] = base
-    a, b = base.split("->")
-    net_endpoints[n] = (a, b)
+# net_meta.json is written by gen_taps.py from pin_map.json: one entry per net
+# carrying its wire colour, its "NET REF.PIN->REF.PIN" label, and the two
+# endpoints the signal router works between.
+net_color = {n: v["color"] for n, v in meta.items()}
+net_label = {n: v["label"] for n, v in meta.items()}
+net_endpoints = {n: tuple(v["endpoints"]) for n, v in meta.items()}
 
 net_points = {}
 for n in taps:
-    src, dst = net_endpoints[n]
-    # strip any leading net-name token, then split at '.'
-    src_clean = src.split(None, 1)[1] if " " in src else src
-    dst_clean = dst.split(None, 1)[1] if " " in dst else dst
-    src_ref, src_pin = src_clean.rsplit(".", 1)
-    dst_ref, dst_pin = dst_clean.rsplit(".", 1)
-    net_points[n] = [pad_by_refpin[(src_ref, src_pin)], pad_by_refpin[(dst_ref, dst_pin)]]
+    pts = []
+    for rp in net_endpoints[n]:
+        ref, pin = rp.rsplit(".", 1)
+        pts.append(pad_by_refpin[(ref, pin)])
+    net_points[n] = pts
 
 BUS_NETS = ["GND", "+3V3", "+5V", "SCL", "SDA"]
 

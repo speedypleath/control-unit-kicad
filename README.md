@@ -17,9 +17,9 @@ tapped at the I²C pull-up network). ERC: 0 errors/0 warnings.
 
 ![Manufactured board](renders/manufactured-board-green-3d.png)
 
-Compact (88×131mm) layout, SMD 0603 resistors, fully autorouted (702 track segments,
-34 vias, 0 unrouted nets), plus 5 THT test-point pads (TP1–TP5) for SDA/SCL/GND/+3V3/+5V
-near R12/R13. DRC: 0 errors/0 warnings.
+Compact (88×131mm) layout, SMD 0603 resistors, fully autorouted (628 track segments,
+45 vias, 0 unrouted nets), plus 5 THT test-point pads (TP1–TP5) for SDA/SCL/GND/+3V3/+5V
+near R12/R13. DRC: 0 errors/0 warnings, 0 unconnected pads.
 
 ![Gerber layout, top view](renders/manufactured-board-gerber-layout.png)
 
@@ -33,7 +33,8 @@ tool (JLCPCB/PCBWay/OSH Park all accept the zip directly).
 ![Perfboard](renders/perfboard-3d-render-green.png)
 
 Hand-wireable 90×150mm 32×50-hole perfboard layout, same schematic/nets, laid out for
-row/column GND+3V3+5V+SDA+SCL bus wiring. TP1–TP5 are real male 2.54mm header pins
+row/column GND+3V3+5V+SDA+SCL bus wiring, with 203 colour-coded back-side jumper wires
+modelled in 3D (see [`docs/perfboard-wiring-regeneration.md`](docs/perfboard-wiring-regeneration.md)). TP1–TP5 are real male 2.54mm header pins
 (not just pads) in the last column at the board's right edge, past S6 — clip a jumper
 or scope hook straight on instead of back-probing a live JST connector. Full
 per-connector wiring plan (every connection as a board grid reference, e.g.
@@ -42,6 +43,17 @@ per-connector wiring plan (every connection as a board grid reference, e.g.
 (source: [`docs/wiring-guide.html`](docs/wiring-guide.html)). Print
 [`renders/perfboard-placement-template-1to1.pdf`](renders/perfboard-placement-template-1to1.pdf)
 at 100%/Actual Size for physical placement.
+
+## GPIO assignment
+
+Every connector signal is wired to whichever Teensy digital pin sits physically closest
+to it, rather than to a contiguous block per function — this cut total hand-wire length
+on the perfboard by ~20% (1772 → 1427 mm of Manhattan run, longest single wire 86 → 58 mm)
+and the perfboard's jumper count from 268 to 203 segments. The assignments are therefore
+**not** sequential; the authoritative map is `scripts/pin_map.json`, rendered per
+connector in the [wiring guide](docs/wiring-guide.html) and the
+[panel wiring guide](docs/panel-wiring-guide.html). Firmware pin constants must follow
+that map.
 
 ## Connector standard
 
