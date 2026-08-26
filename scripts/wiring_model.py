@@ -35,16 +35,26 @@ def gref(x, y):
 
 
 # --- Teensy sockets ---------------------------------------------------------
-# Two 24-pin sockets, pin 1 leftmost in both: row A is the board's row 23, row B
-# its row 29. Row B reads GND, D0..D12, 3V3, D24..D32 -- strictly ascending left
-# to right; row A's numbering runs *down* in two blocks, which is why "further
-# right means a higher pin number" only holds on row B.
+# ROW_A/ROW_B are the Teensy's own two pin rows, listed from its USB end.
+# SOCKET_A/SOCKET_B are how they land on the board, socket pin 1 in hole B23/B29.
+# Ground truth, read straight off the board (owner, 2026-08-26): the Vin/GND/3.3V
+# trio -- the three pins at the module's USB end -- sits in B29 A29 Z29. So row 29
+# (J_TEENSY_B, the rail the owner calls "B") carries ROW_A in its own order, and
+# row 23 (J_TEENSY_A) carries ROW_B in its own order. Neither is reversed. D32 is
+# still on row 23, now at its far end (E23), which is consistent with the owner's
+# earlier "pin 32 is on row 23".
+# Two earlier revisions got this wrong in different ways -- the rows swapped, then
+# both rows reversed. Only ever change it from a direct reading of the physical
+# board, never from "the resulting map looks sensible": every artifact downstream
+# is generated from this, so any orientation looks self-consistent.
 ROW_A = ["+5V", "GND", "+3V3", "D23", "D22", "D21", "D20", "D19", "D18", "D17",
          "D16", "D15", "D14", "D13", "GND", "D41", "D40", "D39", "D38", "D37",
          "D36", "D35", "D34", "D33"]
 ROW_B = ["GND", "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9",
          "D10", "D11", "D12", "+3V3", "D24", "D25", "D26", "D27", "D28", "D29",
          "D30", "D31", "D32"]
+SOCKET_A = list(ROW_B)                       # board row 23
+SOCKET_B = list(ROW_A)                       # board row 29
 
 BUS = ("GND", "+3V3", "+5V", "SDA", "SCL")
 CB_NAMES = ["ARM", "EN", "SFT", "CONF", "ALT"]
@@ -56,7 +66,7 @@ pad_xy = {(p["ref"], p["pin"]): (round(p["x"], 3), round(p["y"], 3))
 pin_map = json.load(open(os.path.join(HERE, "pin_map.json")))
 
 header_pad, header_all = {}, {}
-for _row, _ref in ((ROW_A, "J_TEENSY_A"), (ROW_B, "J_TEENSY_B")):
+for _row, _ref in ((SOCKET_A, "J_TEENSY_A"), (SOCKET_B, "J_TEENSY_B")):
     for _i, _name in enumerate(_row):
         header_pad.setdefault(_name, (_ref, str(_i + 1)))   # first hole on the net
         header_all.setdefault(_name, []).append((_ref, str(_i + 1)))

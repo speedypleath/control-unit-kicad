@@ -226,10 +226,9 @@ from the bulk structural edits Rule #1 is really about.
 
 ## TODO (perfboard)
 
-- **Resistor placement**: R1–R5 now sit directly under their matching CB connector's
-  column (one row below), which is better than the old "wherever there was space" layout,
-  but still worth a pass to shorten the LED-cathode jumper specifically once real wire
-  routing is being planned.
+- ~~**Resistor placement**: shorten the LED-cathode jumper.~~ **Done 2026-08-26** —
+  R1–R5 stand vertically in the column beside their own CB, pin 1 on the same row as
+  `CBn.3`, so each cathode jumper is one 2.6mm hop. See the dated session note below.
 - ~~Apply the `~/KiCad/jumper-wires-kicad` library to the real perfboard.~~ **Done
   2026-08-21, session 3** — see the dated session note below.
 
@@ -1326,3 +1325,419 @@ same procedure as session 9, scoped this time to just the ten changed signals' w
 actual wiring/routing difference.
 
 Not committed — pending explicit instruction, per standing rule.
+
+## Teensy orientation corrected: sockets were modelled backwards (2026-08-26 session 11)
+
+Owner, after seeing the joysticks land on the socket the scripts call `J_TEENSY_A`:
+*"yes it does, pin 32 is on row 23"* — i.e. the Teensy is inserted **USB-to-the-right**,
+not USB-to-the-left as every script in `scripts/` had assumed since session 9. Every
+header hole in every generated artifact was therefore wrong.
+
+**The geometry.** A 2×24 module has exactly two physically-realizable in-plane
+orientations, and going between them **swaps the two rows *and* reverses each of them**
+(a 180° rotation; the swap-without-reverse variant would be a mirror, which you cannot do
+to a socketed part). So the fix is not "rename ROW_A to ROW_B":
+
+```
+row 23 (J_TEENSY_A) = ROW_B[::-1] = D32 D31 … D24 +3V3 D12 D11 … D0 GND
+row 29 (J_TEENSY_B) = ROW_A[::-1] = D33 D34 … D41 GND D13 D14 … D23 +3V3 GND +5V
+```
+
+`ROW_A`/`ROW_B` stay as the *module's* own pin rows (read from the Teensy, USB end
+first); the new `SOCKET_A`/`SOCKET_B` are how they land on the board. Three files carry
+duplicate copies and all three were updated: `scripts/gen_pin_map.py`,
+`scripts/gen_taps.py`, `scripts/wiring_model.py` (plus `gen_wiring_guide.py`, which now
+renders `M.SOCKET_A`/`M.SOCKET_B` for the header strips). The owner's rail **"B" =
+D13–D23/D33–D41 is now genuinely `J_TEENSY_B`**, board row 29 — their original
+"THE B RAIL IS J_TEENSY_B" was right and the scripts were wrong.
+
+**`gen_taps.py` had to stop carrying bus-net header taps over verbatim.** Its old
+`if net in BUS: keep the taps as they are` was fine while the socket mapping never
+changed, but GND/+3V3/+5V/SDA/SCL sit on *fixed Teensy pins*, so which *board hole* they
+tap moves with the orientation exactly like a signal does. It now strips `J_TEENSY_*`
+pads and re-appends them from a `header_all` map (`BUS_GPIO` translates SDA→D18,
+SCL→D19). Without this the five rails would have kept wiring to the old, now-wrong holes
+while every signal moved — a silent, render-clean open circuit.
+
+**Do not use "does the as-built map look sensible?" as evidence of orientation.** Early
+in the session the previous orientation was defended by measuring the firmware's
+`kActionButtonPins` under both orientations (2172mm vs 2449mm total). That is circular:
+those eight pins were themselves *produced* by this script under the assumption being
+tested, so of course they fit it better. The owner reading a "32" silkscreened next to
+the row-23 socket is real evidence; a self-consistent cost is not.
+
+**Consequence worth flagging to the owner (done):** B1–B8 keep their frozen GPIOs but
+their *holes* all moved, from row 29 to row 23 and mirrored end-for-end
+(`B1 D0 A29→F23, B2 D1 Z29→G23, B3 D4 W29→J23, B4 D8 S29→N23, B5 D32 E29→B23,
+B6 D30 G29→Z23, B7 D26 K29→V23, B8 D9 R29→O23`). Because those pins were picked under
+the mirrored model, the buttons now run *crossed* — B1 (far left) reaches D0 at the far
+right of the header, 81mm. The eight frozen buttons cost ~430mm of the 1910mm total;
+unfreezing them is the only way to recover it. If the wires were already soldered to the
+holes the *old* guide named, the GPIOs they actually reach are `D34 D35 D38 GND +5V +3V3
+D20 D13` — note B4 on GND and B5 on +5V, which would short when pressed. Worth a
+continuity check before power-on either way.
+
+**Result**: `scripts/pin_map.json` regenerated — 39 of 40 signals differ from the
+session-10 map (only the frozen buttons are unchanged); total Manhattan wire
+2448.6 → 1910.2 mm, longest 109.2 → 83.8 mm. `D13` now carries `LED2` (CB2's lamp, a
+driven output), so the D13 hazard note moved from the numpad section to the CB section in
+`docs/panel-wiring-guide.html`.
+
+**Pipeline re-run and verified** (`gen_pin_map` → `gen_taps` → `gen_segments_v3` →
+`verify_v3` → `gen_wiring_guide` → `gen_wiring_svg`, then `remove_wires` → `place_wire`):
+50 nets / 157 taps / 48 header pads; **224 segments** across 8 tiers, 0 unroutable, 0 emit
+violations, 0 taps off-wire, 0 disconnected nets, 0 out-of-bounds. `analyze_conflicts.py`
+reports **1 same-tier conflict, and it is a net crossing itself** (`+3V3`'s vertical drop
+to its row-23 header hole crossing its own horizontal rail) — same net, same colour, one
+electrical node, so it reads as a T rather than an overlap; the registry only rejects
+*different-net* same-tier collisions and that is still 0. Perfboard footprints
+277→36→260 (36 real + 224 wires, all on `B.Cu`); `kicad-cli pcb drc --severity-all` 478
+violations, **multiset byte-identical** to a wire-stripped baseline of the same file, 0
+unconnected items. Pixel-measured the `--side bottom` render at 24.14 px/mm: board bbox
+exactly 90.0 × 144.0 mm, **zero overflow in all six wire colours**. Renders regenerated
+(`perfboard-3d-render.png`, `-green.png` via the established dielectric swap/revert —
+hex counts reconfirmed 1 tan / 0 green after revert — and `perfboard-wired-back.png`);
+stray `.kicad_pro`/`.kicad_prl` deleted.
+
+**Still stale, unchanged this session** (the session-10 TODO, now one revision further
+behind): `project/haptic-console-control-unit.kicad_sch`,
+`project/haptic-console-control-unit.kicad_pcb`, `project/gerbers/`, and
+`renders/schematic_readable.png` / `manufactured-board-gerber-layout.png`. Note the
+schematic and manufactured board are *netlist* artifacts — the socket orientation does
+not affect them at all, only which GPIO each signal uses does, so the existing
+`apply_mfg_nets.py` + Freerouting procedure still applies unchanged.
+
+**Superseded within the same session — see the joystick-freeze note below.** The
+224-segment / 1910.2 mm result above, and the firmware constants that were derived from
+it, are one revision stale; the perfboard `.kicad_pcb` and the three renders still hold
+that 224-wire set.
+
+## Joysticks frozen too, docs-only re-solve (2026-08-26 session 12)
+
+Owner, on seeing the button-hole shift report: *"yes, their holes were already there,
+also hope you didn't change the joysticks those are wired as well / no proceed with the
+led buttons, focus first on changing the guide and change all kicad files only when i
+tell you"*. Three separate instructions, all acted on:
+
+1. **J1/J2 are soldered, not merely rail-constrained.** The prior session had only
+   confined them to the D13–D23/D33–D41 rail and then permuted them freely, which
+   silently re-pinned all eight joystick conductors. `FIXED` in
+   `scripts/gen_pin_map.py` now holds **16** signals, not 8 — B1–B8 plus
+   `J1.1-4 = D37 D39 D40 D41` and `J2.1-4 = D22 D21 D20 D16`, values taken from the
+   firmware's `kJoystickPins` (`TeensyPanelCore.h`) — **but with the two sticks
+   swapped relative to that array's order**, see the correction note below. The
+   per-group tidy pass now `continue`s on any group containing a frozen signal —
+   permuting a frozen group's pins is exactly what unfreezes it, and the tidy pass is
+   the one place that would do it silently.
+2. **LED buttons stay in the optimisable set** (CB1–CB5 switches and their lamps),
+   along with the numpad and the six module IRQs — that is what "proceed with the led
+   buttons" scoped.
+3. **No KiCad file touched.** The schematic, both PCBs, gerbers and renders are all
+   deliberately untouched this turn and are now stale against `pin_map.json`.
+
+**`kJoystickPins`'s two sub-arrays are in the opposite order to the connectors.**
+Taking the firmware array literally (stick 0 = `{22,21,20,16}` → J1) put J1 — which sits
+at board **column 9** — on header holes at columns 24–18, and J2 (**column 24**) on
+columns 9–13: all eight joystick wires crossed the whole board, 63.5 mm each. Owner
+caught it off the regenerated guide (*"this is wrong, unmirror them, they were right"*).
+Swapping the two groups drops each stick straight down its own column (J1 `X39→X29`,
+J2 `I39→I29`, 25.4 mm) and costs nothing else. **The firmware needs no edit** — its
+arrays are correct as pin lists, they are just indexed the other way round from the
+board's J1/J2 silkscreen; if the sticks ever read swapped in software, that is the place
+to look, not the wiring.
+
+**Re-solve**: 2827.6 → **1955.9 mm** (31% shorter), longest wire 127.0 → **83.8 mm**;
+every B/J group reports +0.0 delta, confirming the freeze held. Current map:
+
+```
+IRQ1-6  D31 D29 D24 D10 D7 D5     B1-B8   D0 D1 D4 D8 D32 D30 D26 D9   (frozen)
+CB1-5   D33 D38 D14 D15 D17       J1.1-4  D37 D39 D40 D41              (frozen)
+LED1-5  D35 D13 D6  D2  D23       J2.1-4  D22 D21 D20 D16              (frozen)
+NP1.1-8 D34 D36 D12 D3 D11 D25 D27 D28
+```
+
+D13 carries **LED2 only** — CB2's lamp, a driven output, which is the one thing allowed
+there.
+
+**Pipeline re-run, docs only** (`gen_taps` → `gen_segments_v3` → `verify_v3` →
+`gen_wiring_guide` → `gen_wiring_svg`): **235 segments** across 10 tiers, 0 unroutable,
+0 emit violations, 0 same-tier different-net touches, `verify_v3.py` all zeros. The lone
+`analyze_conflicts.py` hit is again `+3V3` crossing *itself* (one electrical node, reads
+as a T). `docs/wiring-guide.html` regenerated (107 connections, 3558 mm, longest 86.4 mm;
+SVG 157 pads / 235 wires / 34 labels) and `docs/panel-wiring-guide.html`'s `PIN` map
+hand-updated to match.
+
+Firmware constants implied by the current map (not applied — different repo):
+`kControlButtonPins {33,38,14,15,17}`, `kControlLedPins {35,13,6,2,23}`,
+`kNumpadColPins {34,36,12,3}`, `kNumpadRowPins {11,25,27,28}`,
+`kModuleIrqPins {31,29,24,10,7,5}`; `kActionButtonPins` and `kJoystickPins` unchanged
+(that is the point of the freeze). `kControlButtonOnPin13` is obsolete — D13 is an LED
+output now.
+
+### R1–R5 moved beside their CB connector (same session)
+
+Owner: *"why did you place the led resistors like that? it would have made more sense to
+place them near the pin they need to be connected to and that's what I will do"* — with
+the new holes given directly: `R1 Y45/Y41, R2 T45/T41, R3 Q45/Q41, R4 J45/J41,
+R5 E45/E41`. The resistors go from lying **horizontally on hole row 48**, below the CB
+block and 4 holes wide, to standing **vertically in the column beside their own CB**,
+pin 1 on row 45 (the same row as `CBn.3`, one column across) and pin 2 on row 41 pointing
+at the header.
+
+Result: every LED-cathode jumper is now **2.6 mm**, a single hole-to-hole hop
+(`CB1.3 Z45 → R1.1 Y45` and so on), against 25–50 mm before — this is the long-standing
+"shorten the LED-cathode jumper" TODO at the top of this file, now closed. Total
+board wire **2726.0 → 1823.8 mm**; 225 segments (down from 235).
+
+Two things to know when re-deriving this:
+- **`E` is ambiguous** — the 32-entry column sequence repeats, so `E` is column 2 *or*
+  column 28. It is 28 here (beside CB5 at column 27); the other four resistors sit one
+  column to the right of their CB, and R3 (`Q`, column 16) one to the *left* of CB3
+  (`P`, 17). Taken from the owner's list literally, not re-derived.
+- **`scripts/board_model.json` was hand-patched, not regenerated**, because the real
+  `.kicad_pcb` has not been touched (see the hold below) — `board_model.py` will
+  reproduce these coordinates once the footprints are actually moved in KiCad.
+  `taps_clean.json`'s ten resistor tap points had to be repointed in the same pass or
+  `gen_taps.py` KeyErrors on the stale coordinates.
+
+Because `LED1–LED5` live at `Rn.2`, moving the resistors re-solves their GPIOs too:
+`LED1-5 = D34 D35 D36 D13 D2`, `CB1-5 = D33 D38 D15 D17 D23`,
+`NP1.1-8 = D14 D11 D7 D6 D12 D24 D25 D27`, `IRQ1-6 = D31 D29 D28 D10 D5 D3`. The sixteen
+frozen button/joystick pins are unchanged. **D13 now carries LED4** (CB4/CONF's lamp) —
+still a driven output, still the only thing allowed there; the hazard note in
+`docs/panel-wiring-guide.html` moved from CB2 to CB4.
+
+Firmware constants for this revision: `kControlButtonPins {33,38,15,17,23}`,
+`kControlLedPins {34,35,36,13,2}`, `kNumpadColPins {14,11,7,6}`,
+`kNumpadRowPins {12,24,25,27}`, `kModuleIrqPins {31,29,28,10,5,3}`;
+`kActionButtonPins` and `kJoystickPins` still unchanged.
+
+**Held pending explicit instruction** (owner: "change all kicad files only when i tell
+you"): moving R1–R5's footprints on the perfboard `.kicad_pcb` (the owner said they will
+do this themselves), perfboard wire re-application (`remove_wires.py` → `place_wire.py`
+against the 226-segment `segments_v3.json`), schematic net-label rename, manufactured-board
+re-net/re-route (`apply_mfg_nets.py` + DSN → Freerouting `-host KiCad` → SES), gerber
+re-export, render regeneration.
+
+### R1 and R4 re-sited as actually soldered (2026-08-26 session 13)
+
+Owner rewired the resistors for real and gave the final holes: `R1 A45/A41`,
+`R2 T45/T41`, `R3 Q45/Q41`, `R4 L45/L41`, `R5 E45/E41` — i.e. R2/R3/R5 as recorded above,
+but **R1 moved Y→A and R4 moved J→L**, so those two now sit on the *left* of their CB
+(with R3) instead of the right.
+
+- **"A" is column 6, not column 32.** The owner's parenthetical "second a, after z" reads
+  the board's printed 32-letter sequence *right to left*: `A`(32) is the first A, and
+  walking left through B C D E F G … Z(7) the next A is column 6 — the one immediately
+  left of CB1 at `Z`(7). Column 32 is the TP1–TP5 edge and would be nonsense here. Same
+  wraparound ambiguity as the `E` case noted above; resolve it by CB adjacency.
+- Updated `scripts/board_model.json` (R1 x 20.32→15.24, R4 x 58.42→53.34; `pad_rows`/
+  `pad_cols` are `grid()`-snapped values, **not** raw pad coordinates — regenerating them
+  from raw x/y silently rewrites ~15 unrelated rows) and the four matching coordinates in
+  `scripts/taps_clean.json`, then re-ran the docs pipeline.
+- **The GPIO map came out byte-identical to session 12** — R1/R4 moving one column each
+  doesn't change which header pin is nearest, so `docs/panel-wiring-guide.html` needed no
+  edit at all (its `PIN` object still matches `pin_map.json`). Only holes and wire lengths
+  moved: total 1823.8 → **1813.6 mm**, 225 → **226 segments**, `verify_v3.py` all zeros,
+  `analyze_conflicts.py` still just the one `+3V3`-crossing-itself T.
+- Fixed three stale prose blocks in `gen_wiring_guide.py` that session 12 had missed (they
+  are hardcoded in the generator, not derived): the `zone-r` intro still described the
+  old flat row-48 placement and its JST-housing clearance warning; `zone-np` still warned
+  about NP1 pin 5 on D13 (D13 has been LED4 since session 12); and the "Moves since the
+  first revision" callout still said "row 49 to row 48". Added a callout stating plainly
+  that the KiCad files are behind this page, and repointed the footer's provenance line at
+  `scripts/board_model.json` (the guide has been generated from that, not from the
+  `.kicad_pcb` directly, for several sessions).
+
+Not committed — pending explicit instruction, per standing rule.
+
+## Teensy orientation settled for real; joystick swap reverted (2026-08-26 session 14)
+
+Third and final correction to the socket mapping. The owner read holes straight off the
+board, which is the only evidence that ever settles this: **USB toward the `B23`/`B29`
+end**, the Vin/GND/3.3V trio in `B29 A29 Z29`, `B1` in `A23` and `B2` in `Z23`. So each
+socket carries its Teensy row **in that row's own order, neither reversed**:
+
+```
+SOCKET_A = ROW_B   # board row 23: B23=GND A23=D0 Z23=D1 ... N23=+3V3 M23=D24 ... E23=D32
+SOCKET_B = ROW_A   # board row 29: B29=+5V A29=GND Z29=+3V3 Y29=D23 ... O29=D13 N29=GND M29=D41 ... E29=D33
+```
+
+Applied to `gen_pin_map.py`, `gen_taps.py`, `wiring_model.py` (all three carry duplicate
+copies — keep them identical).
+
+**`A23 = D0` is the check to repeat.** It is a single hole, on the board, that
+independently confirms both the row assignment and the direction, and it agrees with the
+firmware's `kActionButtonPins[0] = 0`. The contradiction that exposed the previous
+(both-rows-reversed) model was that it put B4 on +3V3 and B5 on GND — a short across the
+3.3V rail when pressed — and J1.3/J1.4 on SCL/SDA. **Physically impossible landings for
+already-soldered wires are strong evidence against a mapping**; a plausible-looking map is
+no evidence *for* one, since every artifact is generated from the mapping.
+
+**The hole records in this file's session-11 note were wrong, not the GPIOs.** `B1 → F23`
+etc. were computed under the wrong model and were never read off the board. What is
+actually invariant is the firmware's GPIO list; the holes follow from it once the
+orientation is right.
+
+**Session 12's joystick swap was reverted.** `kJoystickPins`' two sub-arrays are correct
+exactly as the firmware writes them: `{22,21,20,16}` is J1, `{37,39,40,41}` is J2. Under
+the corrected orientation that is the *uncrossed* pairing (109.5 mm vs 216.1 mm), so the
+"the firmware indexes them the other way round" note from session 12 is wrong and has been
+removed — the swap was compensating for the bad orientation, nothing more. Don't re-derive
+it from cost again; that reasoning is circular when the cost model is what's in doubt.
+
+**`FIXED` now holds 17 signals, not 16** — B1–B8, J1.1–4, J2.1–4, plus `LED5: D29` (the
+owner soldered R5's jumper `E41 → H23`, and `H23` reads `D29`). The `len(FIXED) == 16`
+assert was relaxed to `len(taken) == len(FIXED)`.
+
+**Open hardware conflict flagged to the owner:** R4's jumper went into `L41 → R29`, but
+`R29` is `D16` = **J1 pin 4**, already soldered. LED4 was therefore left in the
+optimisable set and landed on `D13` (`O29`) — five holes further along row 29. A red
+callout in `docs/wiring-guide.html` says to move that one wire. R5's `E41 → H23` is fine.
+
+**Result**: total Manhattan 1633.8 → **1356.3 mm** (17% shorter), longest 70.9 → 61.0 mm,
+every frozen group reporting +0.0 delta. Pipeline re-run (`gen_pin_map` → `gen_taps` →
+`gen_segments_v3` → `verify_v3` → `analyze_conflicts` → `gen_wiring_guide` →
+`gen_wiring_svg`): 50 nets / 157 taps / 48 header pads, **216 segments** across 6 tiers,
+0 unroutable, 0 emit violations, **0 same-tier conflicts** (not even the `+3V3`
+crossing-itself T this time), `verify_v3.py` all zeros. Guide: 107 connections, 3006 mm.
+
+Current map:
+
+```
+IRQ1-6  D2  D3  D7  D12 D27 D31    B1-B8   D0 D1 D4 D8 D32 D30 D26 D9   (frozen)
+CB1-5   D23 D6  D14 D38 D34        J1.1-4  D22 D21 D20 D16              (frozen)
+LED1-5  D5  D17 D15 D13 D29        J2.1-4  D37 D39 D40 D41              (frozen)
+NP1.1-8 D33 D35 D36 D11 D10 D24 D25 D28                                 (LED5 frozen)
+```
+
+Firmware constants for this revision: `kControlButtonPins {23,6,14,38,34}`,
+`kControlLedPins {5,17,15,13,29}`, `kNumpadColPins {33,35,36,11}`,
+`kNumpadRowPins {10,24,25,28}`, `kModuleIrqPins {2,3,7,12,27,31}`; `kActionButtonPins`
+and `kJoystickPins` unchanged **and no longer needing any index swap**. D13 carries LED4
+(CB4/CONF's lamp), a driven output — still the only thing allowed there.
+
+**Docs-only, per the standing "change all kicad files only when i tell you".** Updated:
+`docs/wiring-guide.html` (regenerated, incl. inline SVG at 157 pads / 216 wires),
+`docs/panel-wiring-guide.html` (`PIN` object hand-updated and verified against
+`pin_map.json` programmatically; orientation and freeze paragraphs rewritten),
+`gen_wiring_guide.py`'s orientation callout and header-strip notes. Untouched and now one
+revision further stale: the schematic, both PCBs, gerbers, all renders.
+
+Not committed — pending explicit instruction, per standing rule.
+
+## R4/LED4 rewired; every KiCad artifact resynced (2026-08-26 session 15)
+
+Owner: *"r4/led4 rewired, remake kicad artifact and document everything"* — the open
+hardware conflict session 14 flagged (R4's jumper sitting in `R29` = `D16` = J1 pin 4) has
+been fixed on the physical board by moving that end five holes along to `O29`. That lifts
+the session-12 hold ("change all kicad files only when i tell you"), so this session took
+the whole pipeline from `pin_map.json` down through the schematic, both PCBs, the gerbers,
+every render, both HTML guides and the firmware.
+
+**`FIXED` now holds 18 signals**: B1–B8, J1.1–4, J2.1–4, `LED5: D29`, and now
+**`LED4: D13`** (`O29` reads `D13` under `SOCKET_B = ROW_A`). Freezing LED4 costs nothing —
+`D13` is where the optimiser had already put it, so total/longest are unchanged at
+**1356.3 mm / 61.0 mm**. `D13` drives the Teensy's onboard LED and is legal here only
+because LED4 is a driven output; `forbidden()` still blocks any input from landing there.
+
+Current map (unchanged from session 14 except the numpad, which re-solved):
+
+```
+IRQ1-6  D2  D3  D7  D12 D27 D31    B1-B8   D0 D1 D4 D8 D32 D30 D26 D9   (frozen)
+CB1-5   D23 D6  D14 D38 D34        J1.1-4  D22 D21 D20 D16              (frozen)
+LED1-5  D5  D17 D15 D13 D29        J2.1-4  D37 D39 D40 D41              (frozen)
+NP1.1-8 D33 D35 D36 D10 D28 D25 D24 D11              (LED4, LED5 frozen)
+```
+
+**Perfboard R1–R5 actually moved in KiCad** (they had been hand-patched into
+`board_model.json` only, sessions 12/13). `scratchpad/move_resistors.py` sets each
+footprint's position and `SetOrientationDegrees(90)`, then does the hole-grid bookkeeping.
+Two things worth keeping:
+- **Assert the pad coordinates after rotating, before saving.** `R_Axial_…_P10.16mm_
+  Horizontal` has pad 1 on the origin and pad 2 at local `(+10.16, 0)`; orientation 90 in
+  KiCad's Y-down world puts pad 2 at `(0, −10.16)`, i.e. *above* pad 1. That is the wanted
+  result here, but this project has been bitten by rotation conventions enough times that
+  the script checks rather than assumes.
+- **Scope the "pad now sits on a background via → drop the via" pass to the footprints the
+  script moves.** A first version dropped every `(free yes)` via coincident with *any* pad
+  and removed 58 — 48 of those are pre-existing pad/via co-locations that are part of this
+  board's accepted DRC baseline, not this change's business. Caught only by comparing the
+  count against the 10 expected. Scoped version: **10 dropped, 10 added back**, via count
+  net-unchanged.
+
+**The perfboard's pristine DRC baseline is now 451, not 478** — moving R1–R5 off row 48
+removed 27 violations by itself. Established by DRC-ing a wire-stripped copy of the moved
+board, then confirming the wired board's violation multiset is identical to it.
+
+**Schematic**: 44 net labels renamed via the delete + re-add-at-identical-coordinates
+pattern. Notes:
+- `schematic_rename_label` renames **every** label matching a name, which would drag the
+  U1-side labels off their own pins — unusable here. `schematic_delete_many` +
+  `schematic_add_labels` is still the way.
+- **`schematic_add_labels` takes `name`, not `text`**, per label. Passing `text` fails with
+  a bare `'name'` KeyError and writes nothing (verified: label count unchanged after).
+- The schematic had been on a *much* older map than the TODO list implied — it still used
+  `IRQ1`–`IRQ6` as net names. Everything is now named `D<n>`, so each U1 pin's label is its
+  own GPIO and every connector label carries the GPIO it reaches.
+- Verified on a scratch copy first, then on the real file: 2244 lines, 141 labels,
+  `kicad-cli sch erc` **0/0**, 63 nets / 13 unconnected pseudo-nets (identical to before),
+  and a netlist re-dump confirming **all 40 signals land on their intended U1 pin**.
+  **Derive the pin↔GPIO map from the `libparts` pin *names*, not pin numbers** — that rule
+  from session 9 is still the only thing that makes this check meaningful.
+- A scratch `.kicad_sch` copied into `project/` under a different basename reports two
+  bogus `…does not include the … library 'teensy'` ERC warnings, because KiCad resolves
+  `${KIPRJMOD}` from the *same-named* `.kicad_pro`. Not a regression — the real file is
+  0/0.
+
+**Manufactured board**: fully re-netted and re-routed. `scripts/mfg_pad_nets.json`
+re-dumped from the new netlist (35 refs / 163 pads / 50 nets), `apply_mfg_nets.py`, then
+DSN → Freerouting → SES. Result: 35 footprints, **654 segments, 35 vias**, `kicad-cli pcb
+drc --severity-all` **0 violations / 0 unconnected items**.
+- **Keep the net names verbatim, leading slash and all** (`/D0`, `/SDA`, bare `+3V3`/`GND`).
+  An earlier attempt `lstrip('/')`-ed them; the board's whole existing convention keeps the
+  slash and the DSN/SES round-trip handles it fine.
+- **Strip `unconnected-(U1-…)` pseudo-nets from the pad-net JSON**, as session 9 records.
+- **`-mp 6` was not enough this time**: Freerouting finished at 991.13 with **1 unrouted**
+  net and stopped optimising ("already close to the maximum score"). `-mp 40` reached
+  999.98 / 0 unrouted on pass #8. Read the pass log — a clean exit with a high score is not
+  the same as a fully routed board.
+
+**Gerbers** re-exported to `project/gerbers/` and re-zipped. **Renders** all regenerated:
+`perfboard-3d-render.png` (tan), `-green.png` (dielectric `#9E683EFF` ↔ `#147A3CFF`
+swap/revert — hex counts reconfirmed 1 tan / 0 green, DRC 451/0 after revert),
+`perfboard-wired-back.png` (`--side bottom`), `manufactured-board-green-3d.png`,
+`schematic_readable.png`, `manufactured-board-gerber-layout.png`.
+
+**Pixel-measuring wire overflow needs an explicit `--width`/`--height`.** The default
+`--side bottom` render is ~1568×872 and the board runs off the top and bottom of the frame,
+which silently corrupts the px/mm calibration; two of the six colours also failed to match
+at all. At `--width 2400 --height 3600` every colour's bounding box is strictly inside the
+opaque board region — **zero overflow in all six**. Also: measure against the *opaque*
+region, not the tan-substrate bbox — the silkscreen column/row-label bands cover the
+substrate at the top and bottom edges, so the tan bbox reads ~136 mm on a 144 mm board and
+makes in-bounds wires look like 0.8 mm overflows.
+
+**Perfboard wiring**: 223 segments across 6 tiers, 0 unroutable, 0 emit violations, **0
+same-tier conflicts**, `verify_v3.py` all zeros. 259 footprints (36 real + 223 wires), all
+223 on `B.Cu`. Stray `.kicad_pro` deleted (only the gitignored `.kicad_prl` remains).
+
+**Docs**: `gen_wiring_guide.py`'s R4/LED4 `callout warn` replaced with a resolved-state
+note, the "KiCad files are behind this page" callout rewritten to say they now match, and
+the frozen-signal count corrected 17 → 18. Guide regenerated (107 connections, 3006 mm,
+SVG at 157 pads / 223 wires). `docs/panel-wiring-guide.html`'s `PIN` object hand-updated
+(only the numpad row changed) and its staleness paragraph rewritten. `README.md` counts
+updated (654 segments / 35 vias, 223 jumper legs, the 18-signal freeze).
+
+**Firmware** (`~/Projects/haptic-console-firmware`, separate repo): `kNumpadColPins`
+`{33,35,36,10}` and `kNumpadRowPins` `{28,25,24,11}` (were `{33,35,36,11}` /
+`{10,24,25,28}`), `kPinMapRevision` bumped to `2026-08-26b (R1-R5 upright, LED4 frozen on
+D13)`; the matching expectations in `test/test_teensy_panel_core/test_main.cpp` and the
+README pin table updated. Everything else unchanged. `pio test -e native_test` 49/49,
+`pio run -e teensy_master` builds, and all 40 pins cross-check against `pin_map.json`
+programmatically — **strip `//` comments before regexing an array out of the header**, or
+the trailing `// B1-B4` style comments get parsed as pin numbers and fake a mismatch.
+
+Not committed in either repo — pending explicit instruction, per standing rule. The three
+`jumper-wires-kicad` fixes (back-layer, `m_Scale` /2.54, `m_Offset` z-tier) are still
+uncommitted in that repo too.

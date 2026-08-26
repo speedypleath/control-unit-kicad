@@ -1,290 +1,290 @@
 {
  "+3V3": {
   "color": "red",
-  "label": "+3V3 S1.2->J_TEENSY_A.3",
+  "label": "+3V3 S1.2->S2.2",
   "endpoints": [
    "S1.2",
-   "J_TEENSY_A.3"
+   "S2.2"
   ]
  },
  "+5V": {
   "color": "red",
-  "label": "+5V S1.3->J_TEENSY_A.1",
+  "label": "+5V S1.3->S2.3",
   "endpoints": [
    "S1.3",
-   "J_TEENSY_A.1"
+   "S2.3"
   ]
  },
  "D0": {
   "color": "orange",
-  "label": "D0 B1.2->J_TEENSY_B.2",
+  "label": "D0 B1.2->J_TEENSY_A.2",
   "endpoints": [
    "B1.2",
-   "J_TEENSY_B.2"
+   "J_TEENSY_A.2"
   ]
  },
  "D1": {
   "color": "orange",
-  "label": "D1 B2.2->J_TEENSY_B.3",
+  "label": "D1 B2.2->J_TEENSY_A.3",
   "endpoints": [
    "B2.2",
-   "J_TEENSY_B.3"
+   "J_TEENSY_A.3"
   ]
  },
  "D10": {
   "color": "orange",
-  "label": "D10 R2.2->J_TEENSY_B.12",
+  "label": "D10 NP1.4->J_TEENSY_A.12",
   "endpoints": [
-   "R2.2",
-   "J_TEENSY_B.12"
+   "NP1.4",
+   "J_TEENSY_A.12"
   ]
  },
  "D11": {
   "color": "orange",
-  "label": "D11 CB3.1->J_TEENSY_B.13",
+  "label": "D11 NP1.8->J_TEENSY_A.13",
+  "endpoints": [
+   "NP1.8",
+   "J_TEENSY_A.13"
+  ]
+ },
+ "D13": {
+  "color": "green",
+  "label": "D13 R4.2->J_TEENSY_B.14",
+  "endpoints": [
+   "R4.2",
+   "J_TEENSY_B.14"
+  ]
+ },
+ "D14": {
+  "color": "white",
+  "label": "D14 CB3.1->J_TEENSY_B.13",
   "endpoints": [
    "CB3.1",
    "J_TEENSY_B.13"
   ]
  },
- "D12": {
-  "color": "green",
-  "label": "D12 B8.2->J_TEENSY_B.14",
-  "endpoints": [
-   "B8.2",
-   "J_TEENSY_B.14"
-  ]
- },
- "D13": {
-  "color": "green",
-  "label": "D13 NP1.8->J_TEENSY_A.14",
-  "endpoints": [
-   "NP1.8",
-   "J_TEENSY_A.14"
-  ]
- },
- "D14": {
-  "color": "white",
-  "label": "D14 NP1.1->J_TEENSY_A.13",
-  "endpoints": [
-   "NP1.1",
-   "J_TEENSY_A.13"
-  ]
- },
  "D15": {
   "color": "white",
-  "label": "D15 J2.2->J_TEENSY_A.12",
+  "label": "D15 R3.2->J_TEENSY_B.12",
   "endpoints": [
-   "J2.2",
-   "J_TEENSY_A.12"
+   "R3.2",
+   "J_TEENSY_B.12"
   ]
  },
- "D2": {
+ "D16": {
   "color": "green",
-  "label": "D2 CB1.1->J_TEENSY_B.4",
+  "label": "D16 J1.4->J_TEENSY_B.11",
+  "endpoints": [
+   "J1.4",
+   "J_TEENSY_B.11"
+  ]
+ },
+ "D17": {
+  "color": "orange",
+  "label": "D17 R2.2->J_TEENSY_B.10",
+  "endpoints": [
+   "R2.2",
+   "J_TEENSY_B.10"
+  ]
+ },
+ "D20": {
+  "color": "orange",
+  "label": "D20 J1.3->J_TEENSY_B.7",
+  "endpoints": [
+   "J1.3",
+   "J_TEENSY_B.7"
+  ]
+ },
+ "D21": {
+  "color": "orange",
+  "label": "D21 J1.2->J_TEENSY_B.6",
+  "endpoints": [
+   "J1.2",
+   "J_TEENSY_B.6"
+  ]
+ },
+ "D22": {
+  "color": "orange",
+  "label": "D22 J1.1->J_TEENSY_B.5",
+  "endpoints": [
+   "J1.1",
+   "J_TEENSY_B.5"
+  ]
+ },
+ "D23": {
+  "color": "white",
+  "label": "D23 CB1.1->J_TEENSY_B.4",
   "endpoints": [
    "CB1.1",
    "J_TEENSY_B.4"
   ]
  },
- "D20": {
-  "color": "orange",
-  "label": "D20 J1.1->J_TEENSY_A.7",
-  "endpoints": [
-   "J1.1",
-   "J_TEENSY_A.7"
-  ]
- },
- "D21": {
-  "color": "orange",
-  "label": "D21 J1.2->J_TEENSY_A.6",
-  "endpoints": [
-   "J1.2",
-   "J_TEENSY_A.6"
-  ]
- },
  "D24": {
   "color": "green",
-  "label": "D24 R3.2->J_TEENSY_B.16",
-  "endpoints": [
-   "R3.2",
-   "J_TEENSY_B.16"
-  ]
- },
- "D25": {
-  "color": "white",
-  "label": "D25 CB4.1->J_TEENSY_B.17",
-  "endpoints": [
-   "CB4.1",
-   "J_TEENSY_B.17"
-  ]
- },
- "D26": {
-  "color": "green",
-  "label": "D26 B7.2->J_TEENSY_B.18",
-  "endpoints": [
-   "B7.2",
-   "J_TEENSY_B.18"
-  ]
- },
- "D27": {
-  "color": "white",
-  "label": "D27 J2.3->J_TEENSY_B.19",
-  "endpoints": [
-   "J2.3",
-   "J_TEENSY_B.19"
-  ]
- },
- "D28": {
-  "color": "white",
-  "label": "D28 R4.2->J_TEENSY_B.20",
-  "endpoints": [
-   "R4.2",
-   "J_TEENSY_B.20"
-  ]
- },
- "D29": {
-  "color": "white",
-  "label": "D29 CB5.1->J_TEENSY_B.21",
-  "endpoints": [
-   "CB5.1",
-   "J_TEENSY_B.21"
-  ]
- },
- "D3": {
-  "color": "orange",
-  "label": "D3 J1.4->J_TEENSY_B.5",
-  "endpoints": [
-   "J1.4",
-   "J_TEENSY_B.5"
-  ]
- },
- "D30": {
-  "color": "green",
-  "label": "D30 B6.2->J_TEENSY_B.22",
-  "endpoints": [
-   "B6.2",
-   "J_TEENSY_B.22"
-  ]
- },
- "D31": {
-  "color": "white",
-  "label": "D31 B5.2->J_TEENSY_B.23",
-  "endpoints": [
-   "B5.2",
-   "J_TEENSY_B.23"
-  ]
- },
- "D32": {
-  "color": "orange",
-  "label": "D32 R5.2->J_TEENSY_B.24",
-  "endpoints": [
-   "R5.2",
-   "J_TEENSY_B.24"
-  ]
- },
- "D34": {
-  "color": "green",
-  "label": "D34 NP1.4->J_TEENSY_A.23",
-  "endpoints": [
-   "NP1.4",
-   "J_TEENSY_A.23"
-  ]
- },
- "D35": {
-  "color": "orange",
-  "label": "D35 NP1.3->J_TEENSY_A.22",
-  "endpoints": [
-   "NP1.3",
-   "J_TEENSY_A.22"
-  ]
- },
- "D36": {
-  "color": "orange",
-  "label": "D36 NP1.2->J_TEENSY_A.21",
-  "endpoints": [
-   "NP1.2",
-   "J_TEENSY_A.21"
-  ]
- },
- "D37": {
-  "color": "orange",
-  "label": "D37 J2.4->J_TEENSY_A.20",
-  "endpoints": [
-   "J2.4",
-   "J_TEENSY_A.20"
-  ]
- },
- "D39": {
-  "color": "white",
-  "label": "D39 NP1.5->J_TEENSY_A.18",
-  "endpoints": [
-   "NP1.5",
-   "J_TEENSY_A.18"
-  ]
- },
- "D4": {
-  "color": "green",
-  "label": "D4 J1.3->J_TEENSY_B.6",
-  "endpoints": [
-   "J1.3",
-   "J_TEENSY_B.6"
-  ]
- },
- "D40": {
-  "color": "orange",
-  "label": "D40 NP1.6->J_TEENSY_A.17",
-  "endpoints": [
-   "NP1.6",
-   "J_TEENSY_A.17"
-  ]
- },
- "D41": {
-  "color": "green",
-  "label": "D41 NP1.7->J_TEENSY_A.16",
+  "label": "D24 NP1.7->J_TEENSY_A.16",
   "endpoints": [
    "NP1.7",
    "J_TEENSY_A.16"
   ]
  },
- "D5": {
+ "D25": {
+  "color": "white",
+  "label": "D25 NP1.6->J_TEENSY_A.17",
+  "endpoints": [
+   "NP1.6",
+   "J_TEENSY_A.17"
+  ]
+ },
+ "D26": {
+  "color": "green",
+  "label": "D26 B7.2->J_TEENSY_A.18",
+  "endpoints": [
+   "B7.2",
+   "J_TEENSY_A.18"
+  ]
+ },
+ "D28": {
+  "color": "white",
+  "label": "D28 NP1.5->J_TEENSY_A.20",
+  "endpoints": [
+   "NP1.5",
+   "J_TEENSY_A.20"
+  ]
+ },
+ "D29": {
+  "color": "white",
+  "label": "D29 R5.2->J_TEENSY_A.21",
+  "endpoints": [
+   "R5.2",
+   "J_TEENSY_A.21"
+  ]
+ },
+ "D30": {
+  "color": "green",
+  "label": "D30 B6.2->J_TEENSY_A.22",
+  "endpoints": [
+   "B6.2",
+   "J_TEENSY_A.22"
+  ]
+ },
+ "D32": {
   "color": "orange",
-  "label": "D5 B3.2->J_TEENSY_B.7",
+  "label": "D32 B5.2->J_TEENSY_A.24",
+  "endpoints": [
+   "B5.2",
+   "J_TEENSY_A.24"
+  ]
+ },
+ "D33": {
+  "color": "orange",
+  "label": "D33 NP1.1->J_TEENSY_B.24",
+  "endpoints": [
+   "NP1.1",
+   "J_TEENSY_B.24"
+  ]
+ },
+ "D34": {
+  "color": "green",
+  "label": "D34 CB5.1->J_TEENSY_B.23",
+  "endpoints": [
+   "CB5.1",
+   "J_TEENSY_B.23"
+  ]
+ },
+ "D35": {
+  "color": "orange",
+  "label": "D35 NP1.2->J_TEENSY_B.22",
+  "endpoints": [
+   "NP1.2",
+   "J_TEENSY_B.22"
+  ]
+ },
+ "D36": {
+  "color": "orange",
+  "label": "D36 NP1.3->J_TEENSY_B.21",
+  "endpoints": [
+   "NP1.3",
+   "J_TEENSY_B.21"
+  ]
+ },
+ "D37": {
+  "color": "orange",
+  "label": "D37 J2.1->J_TEENSY_B.20",
+  "endpoints": [
+   "J2.1",
+   "J_TEENSY_B.20"
+  ]
+ },
+ "D38": {
+  "color": "white",
+  "label": "D38 CB4.1->J_TEENSY_B.19",
+  "endpoints": [
+   "CB4.1",
+   "J_TEENSY_B.19"
+  ]
+ },
+ "D39": {
+  "color": "white",
+  "label": "D39 J2.2->J_TEENSY_B.18",
+  "endpoints": [
+   "J2.2",
+   "J_TEENSY_B.18"
+  ]
+ },
+ "D4": {
+  "color": "green",
+  "label": "D4 B3.2->J_TEENSY_A.6",
   "endpoints": [
    "B3.2",
-   "J_TEENSY_B.7"
+   "J_TEENSY_A.6"
+  ]
+ },
+ "D40": {
+  "color": "orange",
+  "label": "D40 J2.3->J_TEENSY_B.17",
+  "endpoints": [
+   "J2.3",
+   "J_TEENSY_B.17"
+  ]
+ },
+ "D41": {
+  "color": "green",
+  "label": "D41 J2.4->J_TEENSY_B.16",
+  "endpoints": [
+   "J2.4",
+   "J_TEENSY_B.16"
+  ]
+ },
+ "D5": {
+  "color": "orange",
+  "label": "D5 R1.2->J_TEENSY_A.7",
+  "endpoints": [
+   "R1.2",
+   "J_TEENSY_A.7"
   ]
  },
  "D6": {
   "color": "orange",
-  "label": "D6 CB2.1->J_TEENSY_B.8",
+  "label": "D6 CB2.1->J_TEENSY_A.8",
   "endpoints": [
    "CB2.1",
-   "J_TEENSY_B.8"
-  ]
- },
- "D7": {
-  "color": "orange",
-  "label": "D7 R1.2->J_TEENSY_B.9",
-  "endpoints": [
-   "R1.2",
-   "J_TEENSY_B.9"
+   "J_TEENSY_A.8"
   ]
  },
  "D8": {
   "color": "white",
-  "label": "D8 J2.1->J_TEENSY_B.10",
+  "label": "D8 B4.2->J_TEENSY_A.10",
   "endpoints": [
-   "J2.1",
-   "J_TEENSY_B.10"
+   "B4.2",
+   "J_TEENSY_A.10"
   ]
  },
  "D9": {
   "color": "orange",
-  "label": "D9 B4.2->J_TEENSY_B.11",
+  "label": "D9 B8.2->J_TEENSY_A.11",
   "endpoints": [
-   "B4.2",
-   "J_TEENSY_B.11"
+   "B8.2",
+   "J_TEENSY_A.11"
   ]
  },
  "GND": {
@@ -313,18 +313,18 @@
  },
  "IRQ3": {
   "color": "yellow",
-  "label": "IRQ3 S3.6->J_TEENSY_A.10",
+  "label": "IRQ3 S3.6->J_TEENSY_A.9",
   "endpoints": [
    "S3.6",
-   "J_TEENSY_A.10"
+   "J_TEENSY_A.9"
   ]
  },
  "IRQ4": {
   "color": "yellow",
-  "label": "IRQ4 S4.6->J_TEENSY_A.11",
+  "label": "IRQ4 S4.6->J_TEENSY_A.14",
   "endpoints": [
    "S4.6",
-   "J_TEENSY_A.11"
+   "J_TEENSY_A.14"
   ]
  },
  "IRQ5": {
@@ -337,10 +337,10 @@
  },
  "IRQ6": {
   "color": "yellow",
-  "label": "IRQ6 S6.6->J_TEENSY_A.24",
+  "label": "IRQ6 S6.6->J_TEENSY_A.23",
   "endpoints": [
    "S6.6",
-   "J_TEENSY_A.24"
+   "J_TEENSY_A.23"
   ]
  },
  "LED_ALT": {

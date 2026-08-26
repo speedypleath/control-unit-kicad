@@ -278,6 +278,7 @@ CSS = """
 
   .callout { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--copper); border-radius: 8px; box-shadow: var(--shadow); padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: var(--muted); }
   .callout strong { color: var(--ink); }
+  .callout.warn { border-left-color: #d9534f; }
   details.notes { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); padding: 0.75rem 1.1rem; }
   details.notes > summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
   details.notes .callout { box-shadow: none; margin-top: 1rem; }
@@ -448,25 +449,30 @@ ZONES = [
     ("zone-cb", "CB1&ndash;CB5 &mdash; LED buttons (near-symmetric)",
      "CB3 sits on the centre column; CB2/CB4 and CB1/CB5 mirror around it. Pin 3 is "
      "the LED anode and does <em>not</em> go to the Teensy &mdash; it goes to that "
-     "connector's series resistor one row below, and the resistor's far end carries "
-     "the GPIO. Both GND pins (2 and 4) sit on their own rows across all five.",
+     "connector's series resistor in the next column across, and the resistor's far "
+     "end carries the GPIO. Both GND pins (2 and 4) sit on their own rows across all "
+     "five. <strong>CB4's lamp is on D13</strong>, the Teensy's onboard-LED pin "
+     "&mdash; safe only because a lamp is a driven output; never move a switch "
+     "(pulled-up input) onto that pin.",
      [f"CB{i}" for i in range(1, 6)]),
     ("zone-r", "R1&ndash;R5 &mdash; LED series resistors",
-     "Row 48 &mdash; the row immediately below each connector's pin&nbsp;1 &mdash; "
-     "with each resistor starting in its matching connector's column and running four "
-     "holes right. <strong>Tight fit:</strong> the JST-XH-4 housing overhangs its "
-     "pin&nbsp;1 by 2.45&nbsp;mm, putting its edge 0.09&nbsp;mm short of the row-48 "
-     "hole, so pin&nbsp;1 of each resistor lands hard against the connector body "
-     "&mdash; bend that lead away from the housing before seating the connector.",
+     "Standing upright in the column beside their own connector, pin&nbsp;1 on row 45 "
+     "&mdash; the same row as that connector's pin&nbsp;3 &mdash; and pin&nbsp;2 four "
+     "holes up on row 41, pointing at the Teensy header. R2 and R5 sit one column to "
+     "the right of their CB; R1, R3 and R4 one column to the left. That puts every "
+     "LED-cathode jumper at a single 2.6&nbsp;mm hole-to-hole hop "
+     "(<code>CB1.3&nbsp;Z45&nbsp;&rarr;&nbsp;R1.1&nbsp;A45</code> and so on) instead "
+     "of the 25&ndash;50&nbsp;mm runs the old row-48 placement needed.",
      [f"R{i}" for i in range(1, 6)]),
     ("zone-np", "NP1 &mdash; numpad",
      "Pushed to the board's right edge to clear the Teensy header rows it shares "
      "rows with. <strong>Watch the labels here:</strong> the board's 32-column letter "
      "sequence reuses each letter at both ends, so NP1's holes can compute to the same "
      "letter+row as a header hole at the opposite edge. Use the left/right position, "
-     "not the label alone. NP1 pin 5 sits on D13, which also drives the Teensy's "
-     "onboard LED &mdash; fine for a matrix <em>row</em> (a driven output), but never "
-     "put a pulled-up column input there.",
+     "not the label alone. No numpad conductor is on D13 any more &mdash; that pin "
+     "drives CB4's lamp. It stays reserved for driven outputs either way: the Teensy's "
+     "onboard LED hangs off D13 and would fight a pull-up, so a column line must never "
+     "be moved onto it.",
      ["NP1"]),
 ]
 
@@ -571,10 +577,10 @@ def build():
   <section id="header">
     <h2>Teensy header pinout</h2>
     <p class="section-intro">The two 24-pin sockets the Teensy drops into, drawn left to right as they sit on the board. Each cell shows the socket pin number, the perfboard hole under it, the Teensy net, and what this build wires to it. Greyed cells are unused &mdash; free for later expansion.</p>
-{header_strip(M.ROW_A, "J_TEENSY_A", "Header A &mdash; board row 23 (upper socket)",
-              "pin 1 at the left edge")}
-{header_strip(M.ROW_B, "J_TEENSY_B", "Header B &mdash; board row 29 (lower socket)",
-              "pin 1 at the left edge")}
+{header_strip(M.SOCKET_A, "J_TEENSY_A", "Header A &mdash; board row 23 (upper socket)",
+              "pin 1 at the left edge &mdash; the Teensy's USB end")}
+{header_strip(M.SOCKET_B, "J_TEENSY_B", "Header B &mdash; board row 29 (lower socket)",
+              "pin 1 at the left edge &mdash; the Teensy's USB end")}
   </section>
 
   <section id="rails">
@@ -631,7 +637,13 @@ def build():
     <details class="notes">
       <summary>How this layout got here</summary>
       <div class="callout">
-        <strong>GPIO assignment (2026-08-23).</strong> Connector signals are not in sequential blocks. Each one is wired to a Teensy pin chosen for physical proximity, solved as an assignment problem over the free GPIOs, which is why the numbers look scattered. B1&ndash;B8 are additionally pinned to header B and assigned in ascending order along the physical row, so no two button wires cross. <strong>Firmware pin constants must follow this map</strong> (<code>scripts/pin_map.json</code>); the tables on this page, the schematic and the manufactured board are all generated from it.
+        <strong>GPIO assignment (2026-08-26).</strong> Connector signals are not in sequential blocks. Each one is wired to a Teensy pin chosen for physical proximity, solved as an assignment problem over the free GPIOs, which is why the numbers look scattered. Eighteen signals override proximity because they are <strong>already soldered</strong> and stay put: <strong>B1&ndash;B8</strong> (<code>D0 D1 D4 D8</code> / <code>D32 D30 D26 D9</code>), <strong>J1/J2</strong> (<code>D22 D21 D20 D16</code> / <code>D37 D39 D40 D41</code>, on the D13&ndash;D23 / D33&ndash;D41 rail &mdash; row 29 here) and <strong>LED4/LED5</strong> (<code>D13</code> / <code>D29</code>, their resistors jumpered <code>L41&rarr;O29</code> and <code>E41&rarr;H23</code>). The other 22 &mdash; the six IRQs, the five control buttons, three of the five lamps and the eight numpad lines &mdash; moved to their nearest free pin. <strong>Firmware pin constants must follow this map</strong> (<code>scripts/pin_map.json</code>); the tables on this page, the schematic and the manufactured board are all generated from it.
+      </div>
+      <div class="callout">
+        <strong>Teensy orientation, verified against the board (2026-08-26).</strong> Two earlier revisions of this page had the module in wrong &mdash; once with the rows swapped, once with both rows reversed. It plugs in <strong>USB toward the <code>B23</code>/<code>B29</code> end</strong> (the left edge of the header strips below), and each socket carries its Teensy row in that row's own order, neither reversed: <strong>row 23</strong> runs <code>GND D0 D1 &hellip; D12 +3V3 D24 &hellip; D32</code> left to right, <strong>row 29</strong> runs <code>+5V GND +3V3 D23 D22 &hellip; D13 GND D41 &hellip; D33</code>. Three independent readings off the physical board agree: the Vin/GND/3.3V trio sits in <code>B29 A29 Z29</code>, B1's wire is in <code>A23</code> (<code>D0</code>) and B2's in <code>Z23</code> (<code>D1</code>) &mdash; exactly the firmware's pins. Every already-soldered wire keeps both its GPIO <em>and</em> its hole under this mapping. If this is ever doubted again, settle it by reading a hole off the board, never by checking whether the resulting map looks sensible &mdash; every table on this page is generated from the mapping, so a wrong one still looks self-consistent.
+      </div>
+      <div class="callout">
+        <strong>R4's jumper was moved off J1's pin (resolved).</strong> R4's LED wire had gone into <code>L41&rarr;R29</code>, but <code>R29</code> reads <code>D16</code> &mdash; <strong>J1 pin 4</strong>, already soldered. It has been pulled and re-landed five holes along in <code>O29</code> (<code>D13</code>), so <strong>LED4 is now frozen on <code>D13</code></strong> alongside LED5's <code>E41&rarr;H23</code> (<code>H23</code> = <code>D29</code>). <code>D13</code> also drives the Teensy's onboard LED, which is harmless here precisely because LED4 is a driven output &mdash; never put a pulled-up input on it.
       </div>
       <div class="callout">
         <strong>Connector standard.</strong> S1&ndash;S6 follow the XH2.54 6-pin Haptic Console Connector Standard v1.1 &mdash; pin 1 GND, pin 2 3.3V, pin 3 5V, pin 4 SDA, pin 5 SCL, pin 6 IRQ &mdash; matching cables crimped to that spec.
@@ -640,14 +652,17 @@ def build():
         <strong>Group layout.</strong> Every JST group shares one anchor row, mirrored left/right to match the physical panel (S1&ndash;S6 centred; B1&ndash;B4 mirrors B5&ndash;B8; J1 mirrors J2; CB1&ndash;CB5 near-symmetric about the centre column). Because each group shares an anchor row, the same pin number lands on the same row across the group, which is what makes the single-wire bus rails possible. Everything fits inside the physical 32&times;50 hole grid.
       </div>
       <div class="callout">
-        <strong>Moves since the first revision.</strong> The Teensy sockets moved one column left and two rows up (rows 25&rarr;23 and 31&rarr;29) and R12/R13 shifted two columns; S1&ndash;S6 shifted one column left to clear the TP1&ndash;TP5 header at the right edge; R1&ndash;R5 moved from row 49 to row 48 to match the board as actually built. Every grid ref on this page is re-derived from the current <code>haptic-console-control-unit-perfboard.kicad_pcb</code> placement, so it already reflects all of these.
+        <strong>Moves since the first revision.</strong> The Teensy sockets moved one column left and two rows up (rows 25&rarr;23 and 31&rarr;29) and R12/R13 shifted two columns; S1&ndash;S6 shifted one column left to clear the TP1&ndash;TP5 header at the right edge; R1&ndash;R5 went from lying flat across row 48 to standing upright on rows 45/41 in the column beside their own CB, which is what shortened every LED-cathode jumper to one hole.
+      </div>
+      <div class="callout">
+        <strong>The KiCad files match this page (2026-08-26).</strong> Everything is now generated from the same <code>scripts/pin_map.json</code>: the perfboard has R1&ndash;R5 standing on rows 45/41 as rewired by hand (<code>R1&nbsp;A45/A41</code>, <code>R2&nbsp;T45/T41</code>, <code>R3&nbsp;Q45/Q41</code>, <code>R4&nbsp;L45/L41</code>, <code>R5&nbsp;E45/E41</code>) with the modelled jumper legs on the back layer, the schematic's net labels carry each signal's GPIO name, and the manufactured board has been re-netted and re-routed from scratch (0 DRC violations, 0 unconnected pads) with fresh gerbers. Change a pin by editing the generator and re-running the pipeline &mdash; never by hand-editing this page or a KiCad file.
       </div>
     </details>
   </section>
 </div>
 
 <footer>
-  Generated by <code>scripts/gen_wiring_guide.py</code> from <code>scripts/pin_map.json</code> and the pad positions in <code>haptic-console-control-unit-perfboard.kicad_pcb</code> &mdash; don't hand-edit this file, regenerate it. Grid refs use the board's own printed columns (F E D C B A Z Y X&hellip;G F E D C B A) and rows (01&ndash;50). GND and +5V are fully available on the main sockets; the Teensy's USB-Host and Ethernet auxiliary pads are not needed.
+  Generated by <code>scripts/gen_wiring_guide.py</code> from <code>scripts/pin_map.json</code> and the pad positions in <code>scripts/board_model.json</code> &mdash; don't hand-edit this file, regenerate it. Grid refs use the board's own printed columns (F E D C B A Z Y X&hellip;G F E D C B A) and rows (01&ndash;50). GND and +5V are fully available on the main sockets; the Teensy's USB-Host and Ethernet auxiliary pads are not needed.
 </footer>
 
 <script>{JS}</script>

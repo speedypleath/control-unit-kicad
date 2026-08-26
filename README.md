@@ -17,8 +17,8 @@ tapped at the I²C pull-up network). ERC: 0 errors/0 warnings.
 
 ![Manufactured board](renders/manufactured-board-green-3d.png)
 
-Compact (88×131mm) layout, SMD 0603 resistors, fully autorouted (628 track segments,
-45 vias, 0 unrouted nets), plus 5 THT test-point pads (TP1–TP5) for SDA/SCL/GND/+3V3/+5V
+Compact (88×131mm) layout, SMD 0603 resistors, fully autorouted (654 track segments,
+35 vias, 0 unrouted nets), plus 5 THT test-point pads (TP1–TP5) for SDA/SCL/GND/+3V3/+5V
 near R12/R13. DRC: 0 errors/0 warnings, 0 unconnected pads.
 
 ![Gerber layout, top view](renders/manufactured-board-gerber-layout.png)
@@ -33,7 +33,7 @@ tool (JLCPCB/PCBWay/OSH Park all accept the zip directly).
 ![Perfboard](renders/perfboard-3d-render-green.png)
 
 Hand-wireable 90×150mm 32×50-hole perfboard layout, same schematic/nets, laid out for
-row/column GND+3V3+5V+SDA+SCL bus wiring, with 203 colour-coded back-side jumper wires
+row/column GND+3V3+5V+SDA+SCL bus wiring, with 223 colour-coded back-side jumper wires
 modelled in 3D (see [`docs/perfboard-wiring-regeneration.md`](docs/perfboard-wiring-regeneration.md)). TP1–TP5 are real male 2.54mm header pins
 (not just pads) in the last column at the board's right edge, past S6 — clip a jumper
 or scope hook straight on instead of back-probing a live JST connector. Full
@@ -47,13 +47,20 @@ at 100%/Actual Size for physical placement.
 ## GPIO assignment
 
 Every connector signal is wired to whichever Teensy digital pin sits physically closest
-to it, rather than to a contiguous block per function — this cut total hand-wire length
-on the perfboard by ~20% (1772 → 1427 mm of Manhattan run, longest single wire 86 → 58 mm)
-and the perfboard's jumper count from 268 to 203 segments. The assignments are therefore
-**not** sequential; the authoritative map is `scripts/pin_map.json`, rendered per
+to it, rather than to a contiguous block per function — 1356 mm of Manhattan run in total,
+longest single wire 61 mm, 223 modelled jumper legs on the perfboard. The assignments are
+therefore **not** sequential; the authoritative map is `scripts/pin_map.json`, rendered per
 connector in the [wiring guide](docs/wiring-guide.html) and the
 [panel wiring guide](docs/panel-wiring-guide.html). Firmware pin constants must follow
 that map.
+
+Eighteen conductors are **frozen** because they are already soldered on the built board and
+are an input to the solver, not a result: B1–B8, both joysticks (J1/J2), and the LED4/LED5
+lamp jumpers. Everything else — the six module IRQs, the five control-button switches, the
+other three lamps and the eight numpad lines — is re-solved for proximity whenever the
+layout moves. The Teensy plugs in **USB toward the `B23`/`B29` end**; if that is ever in
+doubt, settle it by reading a hole off the physical board, never by checking whether the
+resulting map looks sensible.
 
 ## Connector standard
 

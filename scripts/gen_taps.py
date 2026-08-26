@@ -10,8 +10,13 @@ CB->R LED tap exactly as they are, and re-point each signal net at the header pa
 for its new GPIO. Net names follow the GPIO (IRQ nets keep their IRQ name).
 
 The Teensy sits in two 24-pin sockets, J_TEENSY_A (board row 23) and J_TEENSY_B
-(row 29), pin 1 leftmost in both; ROW_A/ROW_B below are those sockets read
-left to right, and are the same lists gen_pin_map.py optimises against.
+(row 29), pin 1 leftmost in both. ROW_A/ROW_B are the module's own two pin rows;
+SOCKET_A/SOCKET_B are those rows as they land on the board -- see the comment
+there, and keep them identical to gen_pin_map.py's copy.
+
+Bus nets get their header holes re-derived too, not carried over: GND/3V3/5V/
+SDA/SCL sit on fixed *Teensy* pins, so which *board hole* they tap moves with
+the socket mapping exactly like a signal does.
 """
 import json
 import hashlib
@@ -23,6 +28,17 @@ ROW_A = ["+5V", "GND", "+3V3", "D23", "D22", "D21", "D20", "D19", "D18", "D17",
 ROW_B = ["GND", "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9",
          "D10", "D11", "D12", "+3V3", "D24", "D25", "D26", "D27", "D28", "D29",
          "D30", "D31", "D32"]
+
+# Ground truth, read straight off the board (owner, 2026-08-26): the Vin/GND/3.3V
+# trio -- the three pins at the module's USB end -- sits in B29 A29 Z29, so each
+# socket carries its module row in the row's own order, neither reversed. Keep
+# this identical to gen_pin_map.py's copy, and only change it from a reading of
+# the physical board -- see the longer note there.
+SOCKET_A = list(ROW_B)                       # board row 23
+SOCKET_B = list(ROW_A)                       # board row 29
+
+# The Teensy's I2C bus is D18/D19; the board calls those nets SDA/SCL.
+BUS_GPIO = {"SDA": "D18", "SCL": "D19"}
 
 # perfboard (ref, pin) -> the signal name gen_pin_map.py assigns a GPIO to
 SIGNAL_OF_PAD = {}
@@ -58,10 +74,11 @@ model = json.load(open("board_model.json"))
 pad_xy = {(p["ref"], p["pin"]): (round(p["x"], 3), round(p["y"], 3)) for p in model["pads"]}
 xy_pad = {v: k for k, v in pad_xy.items()}
 
-header_pad = {}
-for row, ref in ((ROW_A, "J_TEENSY_A"), (ROW_B, "J_TEENSY_B")):
+header_pad, header_all = {}, defaultdict(list)
+for row, ref in ((SOCKET_A, "J_TEENSY_A"), (SOCKET_B, "J_TEENSY_B")):
     for i, name in enumerate(row):
         header_pad.setdefault(name, (ref, str(i + 1)))
+        header_all[name].append((ref, str(i + 1)))
 
 pin_map = json.load(open("pin_map.json"))
 old_taps = json.load(open("taps_clean.json"))
@@ -77,7 +94,9 @@ def refpin(rp):
 for net, pts in old_taps.items():
     rps = [xy_pad[(round(x, 3), round(y, 3))] for x, y in pts]
     if net in BUS:
-        new_net, new_rps = net, rps
+        new_net = net
+        new_rps = [rp for rp in rps if not rp[0].startswith("J_TEENSY")]
+        new_rps += header_all[BUS_GPIO.get(net, net)]
     else:
         sig = next((SIGNAL_OF_PAD[rp] for rp in rps if rp in SIGNAL_OF_PAD), None)
         if sig is None:                       # LED_* : CB pin 3 -> resistor pin 1
