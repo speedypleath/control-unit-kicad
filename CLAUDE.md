@@ -1738,6 +1738,11 @@ README pin table updated. Everything else unchanged. `pio test -e native_test` 4
 programmatically — **strip `//` comments before regexing an array out of the header**, or
 the trailing `// B1-B4` style comments get parsed as pin numbers and fake a mismatch.
 
-Not committed in either repo — pending explicit instruction, per standing rule. The three
-`jumper-wires-kicad` fixes (back-layer, `m_Scale` /2.54, `m_Offset` z-tier) are still
-uncommitted in that repo too.
+Committed on the owner's instruction at the end of the session: `control-unit-kicad`
+`bbc8593` (24 files) and `haptic-console-firmware` `0c634ef` (3 files), both straight on
+`main` per each repo's own convention. Neither was pushed — the instruction was "commit".
+
+**The three `jumper-wires-kicad` fixes were already committed and pushed** as `8aa55cd`
+(2026-08-21), despite sessions 4/5/7/8/9/15 of this file each repeating that they were
+still outstanding. That claim was carried forward from note to note without ever being
+re-checked against `git status` in that repo. Nothing there is pending; don't re-raise it.
